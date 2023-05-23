@@ -62,7 +62,7 @@ def test_IBDXsecO1Group(debug_graph, testname):
 
     csc_ee = ibdxsec.get_data()
 
-    show = True
+    show = False
     close = not show
     from mpl_toolkits.mplot3d import axes3d # accessed implicitly in `subplots()`
     subplots(1, 1, subplot_kw={'projection': '3d'})
