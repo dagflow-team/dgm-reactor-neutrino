@@ -10,7 +10,7 @@ from typing import Mapping
 class Jacobian_dEnu_dEe(FunctionNode):
     """Enu(Ee, cosθ)"""
     __slots__ = (
-        '_enu', '_ctheta',
+        '_enu', '_ee', '_ctheta',
         '_result',
         '_const_me', '_const_mp', '_const_mn',
     )
