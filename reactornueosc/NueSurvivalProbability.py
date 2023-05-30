@@ -1,13 +1,12 @@
-from numba import float64, njit, void
-from numpy import empty, float_, sin, sqrt
-from numpy.typing import NDArray
-
-from ..nodes import FunctionNode
-from ..typefunctions import (
+from dagflow.nodes import FunctionNode
+from dagflow.typefunctions import (
     check_input_dimension,
     check_input_shape,
     copy_from_input_to_output,
 )
+from numba import float64, njit, void
+from numpy import empty, float_, sin, sqrt
+from numpy.typing import NDArray
 
 
 @njit(
@@ -31,12 +30,13 @@ def _osc_prob(
     DeltaMSq32: float,
     alpha: float,
 ) -> None:
-    DeltaMSq31 = DeltaMSq32 + DeltaMSq21  # |Δm²₃₁| = |Δm²₃₂| + |Δm²₂₁|
-    _DeltaMSq32 = alpha * DeltaMSq31 - DeltaMSq21  # proper value of |Δm²₃₂|
-    _DeltaMSq31 = alpha * DeltaMSq32 + DeltaMSq21  # proper value of |Δm²₃₁|
-    _sinSqTheta12 = 0.5 * (1 - sqrt(1 - sinSq2Theta12))  # sin^2 θ_{12}
-    _cosSqTheta12 = 1.0 - _sinSqTheta12  # cos^2 θ_{12}
-    _cosQuTheta13 = (0.5 * (1 - sqrt(1 - sinSq2Theta13))) ** 2  # cos^4 θ_{13}
+    _DeltaMSq31 = alpha * DeltaMSq32 + DeltaMSq21  # Δm²₃₁ = α*|Δm²₃₂| + Δm²₂₁
+    _DeltaMSq32 = (
+        alpha * abs(_DeltaMSq31) - DeltaMSq21
+    )  # Δm²₃₂ = α*|Δm²₃₁| - Δm²₂₁
+    _sinSqTheta12 = 0.5 * (1 - sqrt(1 - sinSq2Theta12))  # sin²2θ₁₂
+    _cosSqTheta12 = 1.0 - _sinSqTheta12  # cos²2θ₁₂
+    _cosQuTheta13 = (0.5 * (1 - sqrt(1 - sinSq2Theta13))) ** 2  # cos^4 θ₁₃
 
     out[:] = (
         1
@@ -56,9 +56,9 @@ class NueSurvivalProbability(FunctionNode):
         `L`: the distance
         `sinSq2Theta12`: sin²2θ₁₂
         `sinSq2Theta13`: sin²2θ₁₃
-        `DeltaMSq21`: |Δm²₂₁|
+        `DeltaMSq21`: Δm²₂₁ = |Δm²₂₁|
         `DeltaMSq32`: |Δm²₃₂|
-        `alpha`: the mass ordering constant
+        `alpha`: α - the mass ordering constant
 
 
     outputs:
@@ -71,7 +71,9 @@ class NueSurvivalProbability(FunctionNode):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._labels.setdefault("mark", "P(E, L, sin²2θ₁₂, sin²2θ₁₃, Δm²₂₁, Δm²₃₂, α)")
+        self._labels.setdefault(
+            "mark", "P(E, L, sin²2θ₁₂, sin²2θ₁₃, Δm²₂₁, Δm²₃₂, α)"
+        )
         self.add_input(
             (
                 "L",
