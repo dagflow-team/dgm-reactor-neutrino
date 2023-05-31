@@ -3,7 +3,7 @@
 from dagflow.graph import Graph
 from dagflow.graphviz import savegraph
 from dagflow.lib.Array import Array
-from numpy import allclose, arange, finfo, pi
+from numpy import allclose, finfo, linspace, pi
 from pytest import mark
 
 from reactornueosc.InverseSquareLaw import InverseSquareLaw
@@ -11,8 +11,8 @@ from reactornueosc.InverseSquareLaw import InverseSquareLaw
 
 @mark.parametrize("dtype", ("d", "f"))
 def test_InverseSquareLaw_01(debug_graph, testname, dtype):
-    arrays_in = tuple(arange(12, dtype=dtype) * i for i in (1, 2, 3))
-    res_all = tuple(0.5 / pi / a**2 for a in arrays_in)
+    arrays_in = tuple(linspace(1, 10, 10, dtype=dtype) * i for i in (1, 2, 3))
+    res_all = tuple(0.25 / pi / a**2 for a in arrays_in)
 
     with Graph(close=True, debug=debug_graph) as graph:
         arrays = tuple(Array("test", array_in) for array_in in arrays_in)
