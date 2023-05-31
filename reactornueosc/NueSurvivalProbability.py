@@ -20,6 +20,7 @@ from numpy.typing import NDArray
         float64,
         float64,
         float64,
+        float64,
     ),
     cache=True,
 )
@@ -33,15 +34,16 @@ def _osc_prob(
     DeltaMSq21: float,
     DeltaMSq32: float,
     alpha: float,
+    conversionFactor: float,
 ) -> None:
     _DeltaMSq32 = alpha * DeltaMSq32  # Δm²₃₂ = α*|Δm²₃₂|
     _DeltaMSq31 = alpha * DeltaMSq32 + DeltaMSq21  # Δm²₃₁ = α*|Δm²₃₂| + Δm²₂₁
-    _sinSqTheta12 = 0.5 * (1 - sqrt(1 - sinSq2Theta12))  # sin²2θ₁₂
-    _cosSqTheta12 = 1.0 - _sinSqTheta12  # cos²2θ₁₂
-    _cosQuTheta13 = (0.5 * (1 - sqrt(1 - sinSq2Theta13))) ** 2  # cos^4 θ₁₃
+    _sinSqTheta12 = 0.5 * (1 - sqrt(1 - sinSq2Theta12))  # sin²θ₁₂
+    _cosSqTheta12 = 1.0 - _sinSqTheta12  # cos²θ₁₂
+    _cosQuTheta13 = (0.5 * (1 - sqrt(1 - sinSq2Theta13))) ** 2  # cos⁴θ₁₃
 
     for i in range(len(E)):
-        buffer[i] = L / 4.0 / E[i]  # common factor
+        buffer[i] = conversionFactor * L / 4.0 / E[i]  # common factor
 
     for i in range(len(out)):
         tmp = buffer[i]
@@ -67,6 +69,10 @@ class NueSurvivalProbability(FunctionNode):
         `DeltaMSq32`: |Δm²₃₂|
         `alpha`: α - the mass ordering constant
 
+    optional inputs:
+        `oscprobArgConversion`: Convert Δm²[eV²]L[km]/E[MeV] to natural units.
+        If the input is not given a default value will be used:
+        `2*pi*1.e-3*scipy.value('electron volt-inverse meter relationship')`
 
     outputs:
         `0` or `result`: array of probabilities
@@ -124,6 +130,15 @@ class NueSurvivalProbability(FunctionNode):
         DeltaMSq32 = inputs["DeltaMSq32"].data[0]
         alpha = inputs["alpha"].data[0]
 
+        if (conversionFactorInput := inputs.get("oscprobArgConversion")) is not None:
+            conversionFactor = conversionFactorInput.data[0]
+        else:
+            from numpy import pi
+            from scipy.constants import value
+            conversionFactor = (
+                pi * 2e-3 * value("electron volt-inverse meter relationship")
+            )
+
         _osc_prob(
             out,
             buffer,
@@ -134,5 +149,6 @@ class NueSurvivalProbability(FunctionNode):
             DeltaMSq21,
             DeltaMSq32,
             alpha,
+            conversionFactor,
         )
         return out
