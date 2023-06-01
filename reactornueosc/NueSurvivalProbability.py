@@ -114,7 +114,7 @@ class NueSurvivalProbability(FunctionNode):
         )
         check_input_subtype(self, "alpha", integer)
         copy_from_input_to_output(self, "E", "result")
-        assign_output_axes_from_inputs(self, "E", "result", assign_nodes=True)
+        assign_output_axes_from_inputs(self, "E", "result", assign_meshes=True)
 
     def _fcn(self, _, inputs, outputs):
         out = outputs["result"].data.ravel()

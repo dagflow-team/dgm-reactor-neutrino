@@ -74,7 +74,7 @@ class IBDXsecO1(FunctionNode):
         check_input_dimension(self, slice(0, 1), 2)
         check_inputs_equivalence(self, slice(0, 1))
         copy_from_input_to_output(self, 'enu', 'result', edges=False, nodes=False)
-        assign_output_axes_from_inputs(self, ('enu', 'costheta'), 'result', assign_nodes=True)
+        assign_output_axes_from_inputs(self, ('enu', 'costheta'), 'result', assign_meshes=True)
 
 from scipy.constants import value as constant
 _constant_hbar = constant('reduced Planck constant')

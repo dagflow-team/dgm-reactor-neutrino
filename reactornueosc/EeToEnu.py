@@ -70,7 +70,7 @@ class EeToEnu(FunctionNode):
         check_inputs_equivalence(self, slice(0, 2))
         eename = self._use_edep and 'edep' or 'ee'
         copy_from_input_to_output(self, eename, 'result', edges=False, nodes=False)
-        assign_output_axes_from_inputs(self, (eename, 'costheta'), 'result', assign_nodes=True)
+        assign_output_axes_from_inputs(self, (eename, 'costheta'), 'result', assign_meshes=True)
 
 from numba import njit, void, float64, boolean
 # NOTE: these functions are used only in non-numba case
