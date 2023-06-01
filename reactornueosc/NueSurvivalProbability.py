@@ -45,8 +45,9 @@ def _osc_prob(
     _cosSqTheta12 = 1.0 - _sinSqTheta12  # cos²θ₁₂
     _cosQuTheta13 = (0.5 * (1 - sqrt(1 - sinSq2Theta13))) ** 2  # cos⁴θ₁₃
 
+    tmp = oscprobArgConversion * L / 4.0
     for i in range(len(out)):
-        L4E = oscprobArgConversion * L / 4.0 / E[i]  # common factor
+        L4E = tmp / E[i]  # common factor
         out[i] = (
             1
             - sinSq2Theta13
