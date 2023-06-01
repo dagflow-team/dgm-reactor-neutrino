@@ -1,5 +1,6 @@
 from dagflow.nodes import FunctionNode
 from dagflow.typefunctions import (
+    assign_output_axes_from_inputs,
     check_input_shape,
     check_input_subtype,
     copy_from_input_to_output,
@@ -113,6 +114,7 @@ class NueSurvivalProbability(FunctionNode):
         )
         check_input_subtype(self, "alpha", integer)
         copy_from_input_to_output(self, "E", "result")
+        assign_output_axes_from_inputs(self, "E", "result", assign_nodes=True)
 
     def _fcn(self, _, inputs, outputs):
         out = outputs["result"].data.ravel()

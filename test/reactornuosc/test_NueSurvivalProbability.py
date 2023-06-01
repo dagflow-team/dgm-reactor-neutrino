@@ -23,7 +23,7 @@ from reactornueosc.NueSurvivalProbability import (
 def test_NueSurvivalProbability_01(
     debug_graph, testname, L, alpha, conversionFactor
 ):
-    E = linspace(1, 100, 100)  # MeV
+    E = linspace(1, 100, 1000)  # MeV
     DeltaMSq21 = 7.39 * 1e-5  # eV^2
     DeltaMSq32 = 2.45 * 1e-3  # eV^2
     sinSq2Theta12 = 3.1 * 1e-1  # [-]
