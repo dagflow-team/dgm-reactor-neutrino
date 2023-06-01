@@ -3,26 +3,27 @@
 from dagflow.graph import Graph
 from dagflow.graphviz import savegraph
 from dagflow.lib.Array import Array
-from numpy import allclose, finfo, linspace, pi, sin, sqrt
+from dagflow.plot import plot_auto
+from matplotlib.pyplot import subplots
+from numpy import allclose, finfo, linspace, sin, sqrt
 from pytest import mark
-from scipy.constants import value
 
-from reactornueosc.NueSurvivalProbability import NueSurvivalProbability
-
-_conversionFactor = (
-    pi * 2e-3 * value("electron volt-inverse meter relationship")
+from reactornueosc.NueSurvivalProbability import (
+    NueSurvivalProbability,
+    _oscprobArgConversion,
 )
 
 
 @mark.parametrize("alpha", (1, -1))  # mass ordering
 @mark.parametrize("L", (2, 52, 180))  # km
 @mark.parametrize(
-    "conversionFactor", (None, _conversionFactor, 0.9 * _conversionFactor)
+    "conversionFactor",
+    (None, _oscprobArgConversion, 0.9 * _oscprobArgConversion),
 )
 def test_NueSurvivalProbability_01(
     debug_graph, testname, L, alpha, conversionFactor
 ):
-    E = linspace(1, 10, 101)  # MeV
+    E = linspace(1, 100, 100)  # MeV
     DeltaMSq21 = 7.39 * 1e-5  # eV^2
     DeltaMSq32 = 2.45 * 1e-3  # eV^2
     sinSq2Theta12 = 3.1 * 1e-1  # [-]
@@ -42,7 +43,7 @@ def test_NueSurvivalProbability_01(
                 "oscprobArgConversion"
             )
     if conversionFactor is None:
-        conversionFactor = _conversionFactor
+        conversionFactor = _oscprobArgConversion
 
     tmp = L * conversionFactor / 4.0 / E
     _DeltaMSq32 = alpha * DeltaMSq32  # Δm²₃₂ = α*|Δm²₃₂|
@@ -60,9 +61,18 @@ def test_NueSurvivalProbability_01(
         - sinSq2Theta12 * _cosQuTheta13 * sin(DeltaMSq21 * tmp) ** 2
     )
 
-    atol = finfo("d").precision*2
+    atol = finfo("d").precision * 2
     assert oscprob.tainted is True
     assert allclose(oscprob.outputs[0].data, res, rtol=0, atol=atol)
     assert oscprob.tainted is False
+
+    subplots(1, 1)
+    plot_auto(
+        oscprob,
+        filter_kw={"masked_value": 0},
+        show=False,
+        close=True,
+        save=f"output/{testname}_plot.pdf",
+    )
 
     savegraph(graph, f"output/{testname}.png")

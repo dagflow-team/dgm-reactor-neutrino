@@ -5,13 +5,17 @@ from dagflow.typefunctions import (
     copy_from_input_to_output,
 )
 from numba import float64, njit, void
-from numpy import empty, float_, integer, sin, sqrt
+from numpy import float_, integer, pi, sin, sqrt
 from numpy.typing import NDArray
+from scipy.constants import value
+
+_oscprobArgConversion = (
+    pi * 2e-3 * value("electron volt-inverse meter relationship")
+)
 
 
 @njit(
     void(
-        float64[:],
         float64[:],
         float64[:],
         float64,
@@ -26,7 +30,6 @@ from numpy.typing import NDArray
 )
 def _osc_prob(
     out: NDArray[float_],
-    buffer: NDArray[float_],
     E: NDArray[float_],
     L: float,
     sinSq2Theta12: float,
@@ -34,7 +37,7 @@ def _osc_prob(
     DeltaMSq21: float,
     DeltaMSq32: float,
     alpha: float,
-    conversionFactor: float,
+    oscprobArgConversion: float,
 ) -> None:
     _DeltaMSq32 = alpha * DeltaMSq32  # Δm²₃₂ = α*|Δm²₃₂|
     _DeltaMSq31 = alpha * DeltaMSq32 + DeltaMSq21  # Δm²₃₁ = α*|Δm²₃₂| + Δm²₂₁
@@ -42,19 +45,16 @@ def _osc_prob(
     _cosSqTheta12 = 1.0 - _sinSqTheta12  # cos²θ₁₂
     _cosQuTheta13 = (0.5 * (1 - sqrt(1 - sinSq2Theta13))) ** 2  # cos⁴θ₁₃
 
-    for i in range(len(E)):
-        buffer[i] = conversionFactor * L / 4.0 / E[i]  # common factor
-
     for i in range(len(out)):
-        tmp = buffer[i]
+        L4E = oscprobArgConversion * L / 4.0 / E[i]  # common factor
         out[i] = (
             1
             - sinSq2Theta13
             * (
-                _sinSqTheta12 * sin(_DeltaMSq32 * tmp) ** 2
-                + _cosSqTheta12 * sin(_DeltaMSq31 * tmp) ** 2
+                _sinSqTheta12 * sin(_DeltaMSq32 * L4E) ** 2
+                + _cosSqTheta12 * sin(_DeltaMSq31 * L4E) ** 2
             )
-            - sinSq2Theta12 * _cosQuTheta13 * sin(DeltaMSq21 * tmp) ** 2
+            - sinSq2Theta12 * _cosQuTheta13 * sin(DeltaMSq21 * L4E) ** 2
         )
 
 
@@ -72,15 +72,13 @@ class NueSurvivalProbability(FunctionNode):
     optional inputs:
         `oscprobArgConversion`: Convert Δm²[eV²]L[km]/E[MeV] to natural units.
         If the input is not given a default value will be used:
-        `2*pi*1.e-3*scipy.value('electron volt-inverse meter relationship')`
+        `2*pi*1e-3*scipy.value('electron volt-inverse meter relationship')`
 
     outputs:
         `0` or `result`: array of probabilities
 
     Calcultes a survival probability for the neutrino
     """
-
-    __slots__ = ("__buffer",)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -115,12 +113,7 @@ class NueSurvivalProbability(FunctionNode):
         check_input_subtype(self, "alpha", integer)
         copy_from_input_to_output(self, "E", "result")
 
-    def _post_allocate(self):
-        Edd = self.inputs["E"].dd
-        self.__buffer = empty(dtype=Edd.dtype, shape=Edd.shape)
-
     def _fcn(self, _, inputs, outputs):
-        buffer = self.__buffer.ravel()
         out = outputs["result"].data.ravel()
         E = inputs["E"].data.ravel()
         L = inputs["L"].data[0]
@@ -130,18 +123,13 @@ class NueSurvivalProbability(FunctionNode):
         DeltaMSq32 = inputs["DeltaMSq32"].data[0]
         alpha = inputs["alpha"].data[0]
 
-        if (conversionFactorInput := inputs.get("oscprobArgConversion")) is not None:
-            conversionFactor = conversionFactorInput.data[0]
+        if (conversionInput := inputs.get("oscprobArgConversion")) is not None:
+            oscprobArgConversion = conversionInput.data[0]
         else:
-            from numpy import pi
-            from scipy.constants import value
-            conversionFactor = (
-                pi * 2e-3 * value("electron volt-inverse meter relationship")
-            )
+            oscprobArgConversion = _oscprobArgConversion
 
         _osc_prob(
             out,
-            buffer,
             E,
             L,
             sinSq2Theta12,
@@ -149,6 +137,6 @@ class NueSurvivalProbability(FunctionNode):
             DeltaMSq21,
             DeltaMSq32,
             alpha,
-            conversionFactor,
+            oscprobArgConversion,
         )
         return out
