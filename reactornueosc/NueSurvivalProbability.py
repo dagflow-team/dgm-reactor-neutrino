@@ -183,7 +183,6 @@ class NueSurvivalProbability(FunctionNode):
             inputs[name + ('L',) + key] = oscprob.inputs['L']
             outputs[ckey] = oscprob.outputs[0]
 
-        if (common_storage := NodeStorage.current()) is not None:
-            common_storage^=storage
+        NodeStorage.update_current(storage, strict=True)
 
         return None, storage

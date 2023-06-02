@@ -63,7 +63,7 @@ class IBDXsecO1Group(MetaNode):
         **kwargs
     ) -> Tuple["IntegratorGroup", "NodeStorage"]:
         from dagflow.storage import NodeStorage
-        storage = NodeStorage()
+        storage = NodeStorage(default_containers=True)
         nodes = storage.child('nodes')
         inputs = storage.child('inputs')
         outputs = storage.child('outputs')
@@ -76,7 +76,6 @@ class IBDXsecO1Group(MetaNode):
         outputs[name_ibd] = ibd.outputs['result']
         outputs[name_enu] = ibd.outputs['result']
 
-        if (common_storage := NodeStorage.current()) is not None:
-            common_storage^=storage
+        NodeStorage.update_current(storage, strict=True)
 
         return ibd, storage
