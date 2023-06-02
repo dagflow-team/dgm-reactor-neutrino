@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, TYPE_CHECKING
+from typing import Tuple, Optional, Literal, TYPE_CHECKING
 if TYPE_CHECKING:
     from dagflow.node import Node
 from multikeydict.typing import KeyLike
@@ -89,7 +89,10 @@ class NueSurvivalProbability(FunctionNode):
     Calcultes a survival probability for the neutrino
     """
 
-    def __init__(self, *args, **kwargs):
+    __slots__ = ('_baseline_scale',)
+    _baseline_scale: float
+
+    def __init__(self, *args, distance_unit: Literal['km', 'm']='km', **kwargs):
         super().__init__(*args, **kwargs)
         self._labels.setdefault("mark", "P(ee)")
         self.add_input("E", positional=True)
@@ -105,6 +108,11 @@ class NueSurvivalProbability(FunctionNode):
             positional=False,
         )
         self._add_output("result")
+
+        try:
+            self._baseline_scale = {'km': 1, 'm': 1.e-3}[distance_unit]
+        except KeyError as e:
+            raise RuntimeError(f"Invalid distance unit {distance_unit}") from e
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
@@ -142,7 +150,7 @@ class NueSurvivalProbability(FunctionNode):
         _osc_prob(
             out,
             E,
-            L,
+            L*self._baseline_scale,
             SinSq2Theta12,
             SinSq2Theta13,
             DeltaMSq21,
