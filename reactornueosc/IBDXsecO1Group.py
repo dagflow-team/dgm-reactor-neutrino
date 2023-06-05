@@ -56,9 +56,9 @@ class IBDXsecO1Group(MetaNode):
     @classmethod
     def make_stored(
         cls,
-        name_ibd: str = 'ibd',
-        name_enu: str = 'enu',
-        name_jacobian: str = 'jacobian',
+        name_ibd: str = 'ibd.crosssection',
+        name_enu: str = 'ibd.enu',
+        name_jacobian: str = 'ibd.jacobian',
         *args,
         **kwargs
     ) -> Tuple["IntegratorGroup", "NodeStorage"]:
@@ -74,7 +74,8 @@ class IBDXsecO1Group(MetaNode):
         inputs[name_ibd, ibd._eename] = ibd.inputs[ibd._eename]
         inputs[name_ibd, 'costheta'] = ibd.inputs['costheta']
         outputs[name_ibd] = ibd.outputs['result']
-        outputs[name_enu] = ibd.outputs['result']
+        outputs[name_enu] = ibd.outputs['enu']
+        outputs[name_jacobian] = ibd.outputs['jacobian']
 
         NodeStorage.update_current(storage, strict=True)
 
