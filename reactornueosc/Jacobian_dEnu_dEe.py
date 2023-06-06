@@ -67,7 +67,7 @@ class Jacobian_dEnu_dEe(FunctionNode):
         check_input_dimension(self, slice(0, 3), 2)
         check_inputs_equivalence(self, slice(0, 3))
         eename = self._use_edep and 'edep' or 'ee'
-        copy_from_input_to_output(self, eename, 'result', edges=False, nodes=False)
+        copy_from_input_to_output(self, eename, 'result', edges=False, meshes=False)
         assign_output_axes_from_inputs(self, (eename, 'costheta'), 'result', assign_meshes=True)
 
 

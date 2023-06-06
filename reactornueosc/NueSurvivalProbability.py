@@ -95,7 +95,7 @@ class NueSurvivalProbability(FunctionNode):
     def __init__(self, *args, distance_unit: Literal['km', 'm']='km', **kwargs):
         super().__init__(*args, **kwargs)
         self._labels.setdefault("mark", "P(ee)")
-        self.add_input("E", positional=True)
+        self._add_pair("E", "result")
         self.add_input(
             (
                 "L",
@@ -107,7 +107,6 @@ class NueSurvivalProbability(FunctionNode):
             ),
             positional=False,
         )
-        self._add_output("result")
 
         try:
             self._baseline_scale = {'km': 1, 'm': 1.e-3}[distance_unit]
@@ -130,7 +129,7 @@ class NueSurvivalProbability(FunctionNode):
         )
         # check_input_subtype(self, "nmo", integer)
         copy_from_input_to_output(self, "E", "result")
-        assign_output_axes_from_inputs(self, "E", "result", assign_meshes=True, ignore_assigned=True)
+        assign_output_axes_from_inputs(self, "E", "result", assign_meshes=True, overwrite_assigned=True)
 
     def _fcn(self, _, inputs, outputs):
         out = outputs["result"].data.ravel()

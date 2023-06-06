@@ -73,7 +73,7 @@ class IBDXsecO1(FunctionNode):
         check_input_dtype(self, slice(None), 'd')
         check_input_dimension(self, slice(0, 1), 2)
         check_inputs_equivalence(self, slice(0, 1))
-        copy_from_input_to_output(self, 'enu', 'result', edges=False, nodes=False)
+        copy_from_input_to_output(self, 'enu', 'result', edges=False, meshes=False)
         assign_output_axes_from_inputs(self, ('enu', 'costheta'), 'result', assign_meshes=True)
 
 from scipy.constants import value as constant
