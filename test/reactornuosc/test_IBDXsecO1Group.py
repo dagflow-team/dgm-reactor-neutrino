@@ -66,35 +66,35 @@ def test_IBDXsecO1Group(debug_graph, testname):
     close = not show
     from mpl_toolkits.mplot3d import axes3d # accessed implicitly in `subplots()`
     subplots(1, 1, subplot_kw={'projection': '3d'})
-    plot_auto(ibdxsec, mode='surface', cmap=True, colorbar=True,
+    plot_auto(ibdxsec, method='surface', cmap=True, colorbar=True,
               show=False, close=close, save=f"output/{testname}_xsec_surf.pdf")
 
     subplots(1, 1, subplot_kw={'projection': '3d'})
-    plot_auto(ibdxsec, mode='wireframe', cmap=True, colorbar=True,
+    plot_auto(ibdxsec, method='wireframe', cmap=True, colorbar=True,
               show=False, close=close, save=f"output/{testname}_xsec_wirec.pdf")
 
     subplots(1, 1, subplot_kw={'projection': '3d'})
-    plot_auto(ibdxsec, mode='wireframe',
+    plot_auto(ibdxsec, method='wireframe',
               show=False, close=close, save=f"output/{testname}_xsec_wire.pdf")
 
     subplots(1, 1)
-    plot_auto(ibdxsec, mode='pcolormesh', colorbar=True,
+    plot_auto(ibdxsec, method='pcolormesh', colorbar=True,
               show=False, close=close, save=f"output/{testname}_xsec_mesh.pdf")
 
     subplots(1, 1)
-    plot_auto(ibdxsec.outputs['enu'], mode='pcolormesh', colorbar=True,
+    plot_auto(ibdxsec.outputs['enu'], method='pcolormesh', colorbar=True,
               show=False, close=close, save=f"output/{testname}_enu_mesh.pdf")
 
     subplots(1, 1, subplot_kw={'projection': '3d'})
-    plot_auto(ibdxsec.outputs['enu'], mode='surface', cmap=True, colorbar=True,
+    plot_auto(ibdxsec.outputs['enu'], method='surface', cmap=True, colorbar=True,
               show=False, close=close, save=f"output/{testname}_enu_surf.pdf")
 
     subplots(1, 1)
-    plot_auto(ibdxsec.outputs['jacobian'], mode='pcolormesh', colorbar=True,
+    plot_auto(ibdxsec.outputs['jacobian'], method='pcolormesh', colorbar=True,
               show=False, close=close, save=f"output/{testname}_jac_mesh.pdf")
 
     subplots(1, 1, subplot_kw={'projection': '3d'})
-    plot_auto(ibdxsec.outputs['jacobian'], mode='surface', cmap=True, colorbar=True,
+    plot_auto(ibdxsec.outputs['jacobian'], method='surface', cmap=True, colorbar=True,
               show=show, close=True, save=f"output/{testname}_jac_surf.pdf")
 
     savegraph(graph, f"output/{testname}.pdf")

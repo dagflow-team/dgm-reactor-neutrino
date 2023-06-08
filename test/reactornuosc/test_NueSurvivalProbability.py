@@ -5,7 +5,7 @@ from dagflow.graphviz import savegraph
 from dagflow.lib.Array import Array
 from dagflow.plot import plot_auto
 from matplotlib.pyplot import subplots
-from numpy import allclose, finfo, linspace, sin, sqrt
+from numpy import allclose, finfo, geomspace, sin, sqrt
 from pytest import mark
 
 from reactornueosc.NueSurvivalProbability import (
@@ -23,7 +23,7 @@ from reactornueosc.NueSurvivalProbability import (
 def test_NueSurvivalProbability_01(
     debug_graph, testname, L, nmo, conversionFactor
 ):
-    E = linspace(1, 100, 1000)  # MeV
+    E = geomspace(1, 100, 1000)  # MeV
     DeltaMSq21 = 7.39 * 1e-5  # eV^2
     DeltaMSq32 = 2.45 * 1e-3  # eV^2
     SinSq2Theta12 = 3.1 * 1e-1  # [-]
