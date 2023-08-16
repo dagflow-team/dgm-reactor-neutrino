@@ -5,14 +5,14 @@ from dagflow.lib.Array import Array
 from dagflow.bundles.load_parameters import load_parameters
 from numpy import linspace, meshgrid, meshgrid
 
-from reactornueosc.IBDXsecO1 import IBDXsecO1
+from reactornueosc.IBDXsecVBO1 import IBDXsecVBO1
 from reactornueosc.EeToEnu import EeToEnu
 from reactornueosc.Jacobian_dEnu_dEe import Jacobian_dEnu_dEe
 from dagflow.plot import plot_auto
 
 from matplotlib.pyplot import close, subplots
 
-def test_IBDXsecO1(debug_graph, testname):
+def test_IBDXsecVBO1(debug_graph, testname):
     data = {
             'format': 'value',
             'state': 'fixed',
@@ -51,8 +51,8 @@ def test_IBDXsecO1(debug_graph, testname):
         ee = Array('ee', ee2)
         ctheta = Array('ctheta', ctheta2)
 
-        ibdxsec_enu = IBDXsecO1('ibd_Eν')
-        ibdxsec_ee = IBDXsecO1('ibd_Ee')
+        ibdxsec_enu = IBDXsecVBO1('ibd_Eν')
+        ibdxsec_ee = IBDXsecVBO1('ibd_Ee')
         eetoenu = EeToEnu('Enu')
         jacobian = Jacobian_dEnu_dEe('dEν/dEe')
 

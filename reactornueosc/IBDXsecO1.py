@@ -5,7 +5,7 @@ from dagflow.output import Output
 
 from typing import Mapping
 
-class IBDXsecO1(FunctionNode):
+class IBDXsecVBO1(FunctionNode):
     """Inverse beta decay cross section by Vogel and Beacom"""
     __slots__ = (
         '_enu', '_ctheta',

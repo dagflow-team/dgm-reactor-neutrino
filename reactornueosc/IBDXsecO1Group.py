@@ -1,4 +1,4 @@
-from .IBDXsecO1 import IBDXsecO1
+from .IBDXsecVBO1 import IBDXsecVBO1
 from .EeToEnu import EeToEnu
 from .Jacobian_dEnu_dEe import Jacobian_dEnu_dEe
 
@@ -8,7 +8,7 @@ from typing import Tuple, TYPE_CHECKING
 if TYPE_CHECKING:
     from dagflow.storage import NodeStorage
 
-class IBDXsecO1Group(MetaNode):
+class IBDXsecVBO1Group(MetaNode):
     __slots__ = ('_eename', )
     __eename: str
 
@@ -23,7 +23,7 @@ class IBDXsecO1Group(MetaNode):
     ):
         super().__init__()
 
-        ibdxsec = IBDXsecO1(name_ibd, label=labels.get('xsec', {}))
+        ibdxsec = IBDXsecVBO1(name_ibd, label=labels.get('xsec', {}))
         eetoenu = EeToEnu(name_enu, use_edep=use_edep, label=labels.get('enu', {}))
         jacobian = Jacobian_dEnu_dEe(name_jacobian, use_edep=use_edep, label=labels.get('jacobian', {}))
 

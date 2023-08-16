@@ -5,12 +5,12 @@ from dagflow.lib.Array import Array
 from dagflow.bundles.load_parameters import load_parameters
 from numpy import linspace, meshgrid, meshgrid
 
-from reactornueosc.IBDXsecO1Group import IBDXsecO1Group
+from reactornueosc.IBDXsecVBO1Group import IBDXsecVBO1Group
 from dagflow.plot import plot_auto
 
 from matplotlib.pyplot import close, subplots
 
-def test_IBDXsecO1Group(debug_graph, testname):
+def test_IBDXsecVBO1Group(debug_graph, testname):
     data = {
             'format': 'value',
             'state': 'fixed',
@@ -53,7 +53,7 @@ def test_IBDXsecO1Group(debug_graph, testname):
                        label={'axis': r'$\cos\theta$'}
                        )
 
-        ibdxsec = IBDXsecO1Group()
+        ibdxsec = IBDXsecVBO1Group()
 
         ibdxsec << storage('parameter.constant')
         ee >> ibdxsec.inputs['ee']
