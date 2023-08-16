@@ -3,7 +3,6 @@ from dagflow.nodes import FunctionNode
 from dagflow.input import Input
 from dagflow.output import Output
 
-from typing import Mapping
 
 class IBDXsecVBO1(FunctionNode):
     """Inverse beta decay cross section by Vogel and Beacom"""
@@ -51,7 +50,7 @@ class IBDXsecVBO1(FunctionNode):
         self._const_f    = self._add_input('f', positional=False, keyword=True)
         self._const_f2   = self._add_input('f2', positional=False, keyword=True)
 
-    def _fcn(self, _, inputs, outputs):
+    def _fcn(self):
         _ibdxsecO1(
                 self._enu.data.ravel(),
                 self._ctheta.data.ravel(),

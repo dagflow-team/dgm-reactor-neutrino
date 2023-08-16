@@ -1,7 +1,7 @@
 from dagflow.input_extra import MissingInputAddPair
 from dagflow.nodes import FunctionNode
 
-from typing import Mapping, TYPE_CHECKING
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from dagflow.input import Input
     from dagflow.output import Output
@@ -46,7 +46,7 @@ class EeToEnu(FunctionNode):
         self._const_mp = self._add_input('ProtonMass', positional=False, keyword=True)
         self._const_mn = self._add_input('NeutronMass', positional=False, keyword=True)
 
-    def _fcn(self, _, inputs, outputs):
+    def _fcn(self):
         _enu(
             self._ee.data.ravel(),
             self._ctheta.data.ravel(),

@@ -1,20 +1,23 @@
-from typing import Tuple, Optional, Literal, TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, Optional, Tuple
+
 if TYPE_CHECKING:
     from dagflow.node import Node
-from multikeydict.typing import KeyLike
-
-from dagflow.nodes import FunctionNode
-from dagflow.typefunctions import (
-    assign_output_axes_from_inputs,
-    check_input_shape,
-    copy_from_input_to_output,
-)
-from dagflow.storage import NodeStorage
+    from dagflow.input import Input
+    from dagflow.output import Output
 
 from numba import float64, njit, void
 from numpy import float_, pi, sin, sqrt
 from numpy.typing import NDArray
 from scipy.constants import value
+
+from dagflow.nodes import FunctionNode
+from dagflow.storage import NodeStorage
+from dagflow.typefunctions import (
+    assign_output_axes_from_inputs,
+    check_input_shape,
+    copy_from_input_to_output,
+)
+from multikeydict.typing import KeyLike
 
 _oscprobArgConversion = (
     pi * 2e-3 * value("electron volt-inverse meter relationship")
@@ -88,27 +91,42 @@ class NueSurvivalProbability(FunctionNode):
     Calcultes a survival probability for the neutrino
     """
 
-    __slots__ = ('_baseline_scale',)
-    _baseline_scale: float
+    __slots__ = (
+        "_baseline_scale",
+        "_result",
+        "_E",
+        "_L",
+        "_SinSq2Theta12",
+        "_SinSq2Theta13",
+        "_DeltaMSq21",
+        "_DeltaMSq32",
+        "_nmo",
+    )
 
-    def __init__(self, *args, distance_unit: Literal['km', 'm']='km', **kwargs):
+    _baseline_scale: float
+    _E: "Input"
+    _L: "Input"
+    _nmo: "Input"
+    _DeltaMSq21: "Input"
+    _DeltaMSq32: "Input"
+    _SinSq2Theta12: "Input"
+    _SinSq2Theta13: "Input"
+    _result: "Output"
+
+    def __init__(
+        self, *args, distance_unit: Literal["km", "m"] = "km", **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self._labels.setdefault("mark", "P(ee)")
-        self._add_pair("E", "result")
-        self.add_input(
-            (
-                "L",
-                "SinSq2Theta12",
-                "SinSq2Theta13",
-                "DeltaMSq21",
-                "DeltaMSq32",
-                "nmo",
-            ),
-            positional=False,
-        )
-
+        self._E, self._result = self._add_pair("E", "result")
+        self._L = self._add_input("L", positional=False)
+        self._SinSq2Theta12 = self._add_input("SinSq2Theta12", positional=False)
+        self._SinSq2Theta13 = self._add_input("SinSq2Theta13", positional=False)
+        self._DeltaMSq21 = self._add_input("DeltaMSq21", positional=False)
+        self._DeltaMSq32 = self._add_input("DeltaMSq32", positional=False)
+        self._nmo = self._add_input("nmo", positional=False)
         try:
-            self._baseline_scale = {'km': 1, 'm': 1.e-3}[distance_unit]
+            self._baseline_scale = {"km": 1, "m": 1.0e-3}[distance_unit]
         except KeyError as e:
             raise RuntimeError(f"Invalid distance unit {distance_unit}") from e
 
@@ -128,19 +146,23 @@ class NueSurvivalProbability(FunctionNode):
         )
         # check_input_subtype(self, "nmo", integer)
         copy_from_input_to_output(self, "E", "result")
-        assign_output_axes_from_inputs(self, "E", "result", assign_meshes=True, overwrite_assigned=True)
+        assign_output_axes_from_inputs(
+            self, "E", "result", assign_meshes=True, overwrite_assigned=True
+        )
 
-    def _fcn(self, _, inputs, outputs):
-        out = outputs["result"].data.ravel()
-        E = inputs["E"].data.ravel()
-        L = inputs["L"].data[0]
-        SinSq2Theta12 = inputs["SinSq2Theta12"].data[0]
-        SinSq2Theta13 = inputs["SinSq2Theta13"].data[0]
-        DeltaMSq21 = inputs["DeltaMSq21"].data[0]
-        DeltaMSq32 = inputs["DeltaMSq32"].data[0]
-        nmo = inputs["nmo"].data[0]
+    def _fcn(self):
+        out = self._result.data.ravel()
+        E = self._E.data.ravel()
+        L = self._L.data[0]
+        SinSq2Theta12 = self._SinSq2Theta12.data[0]
+        SinSq2Theta13 = self._SinSq2Theta13.data[0]
+        DeltaMSq21 = self._DeltaMSq21.data[0]
+        DeltaMSq32 = self._DeltaMSq32.data[0]
+        nmo = self._nmo.data[0]
 
-        if (conversionInput := inputs.get("oscprobArgConversion")) is not None:
+        if (
+            conversionInput := self.inputs.get("oscprobArgConversion")
+        ) is not None:
             oscprobArgConversion = conversionInput.data[0]
         else:
             oscprobArgConversion = _oscprobArgConversion
@@ -148,7 +170,7 @@ class NueSurvivalProbability(FunctionNode):
         _osc_prob(
             out,
             E,
-            L*self._baseline_scale,
+            L * self._baseline_scale,
             SinSq2Theta12,
             SinSq2Theta13,
             DeltaMSq21,
@@ -160,28 +182,23 @@ class NueSurvivalProbability(FunctionNode):
 
     @classmethod
     def replicate(
-        cls,
-        name: str,
-        *args,
-        replicate: Tuple[KeyLike,...]=((),),
-        **kwargs
+        cls, name: str, *args, replicate: Tuple[KeyLike, ...] = ((),), **kwargs
     ) -> Tuple[Optional["Node"], NodeStorage]:
         storage = NodeStorage()
-        nodes = storage.child('nodes')
-        inputs = storage.child('inputs')
-        outputs = storage.child('outputs')
+        nodes = storage.child("nodes")
+        inputs = storage.child("inputs")
+        outputs = storage.child("outputs")
 
-        nametuple = tuple(name.split('.'))
+        nametuple = tuple(name.split("."))
         for key in replicate:
-            if isinstance(key, str):
-                ckey = nametuple + (key,)
-            else:
-                ckey = nametuple + key
+            ckey = (
+                nametuple + (key,) if isinstance(key, str) else nametuple + key
+            )
             cname = ".".join(ckey)
             oscprob = cls(cname, *args, **kwargs)
             nodes[ckey] = oscprob
-            inputs[nametuple + ('enu',) + key] = oscprob.inputs[0]
-            inputs[nametuple + ('L',) + key] = oscprob.inputs['L']
+            inputs[nametuple + ("enu",) + key] = oscprob.inputs[0]
+            inputs[nametuple + ("L",) + key] = oscprob.inputs["L"]
             outputs[ckey] = oscprob.outputs[0]
 
         NodeStorage.update_current(storage, strict=True)

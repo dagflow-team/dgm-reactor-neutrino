@@ -3,7 +3,6 @@ from dagflow.nodes import FunctionNode
 from dagflow.input import Input
 from dagflow.output import Output
 
-from typing import Mapping
 
 class Jacobian_dEnu_dEe(FunctionNode):
     """Enu(Ee, cosθ)"""
@@ -45,7 +44,7 @@ class Jacobian_dEnu_dEe(FunctionNode):
         self._const_me   = self._add_input('ElectronMass', positional=False, keyword=True)
         self._const_mp   = self._add_input('ProtonMass', positional=False, keyword=True)
 
-    def _fcn(self, _, inputs, outputs):
+    def _fcn(self):
         _jacobian_dEnu_dEe(
             self._enu.data.ravel(),
             self._ee.data.ravel(),
