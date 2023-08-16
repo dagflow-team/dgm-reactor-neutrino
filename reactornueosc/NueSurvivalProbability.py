@@ -7,13 +7,12 @@ from dagflow.nodes import FunctionNode
 from dagflow.typefunctions import (
     assign_output_axes_from_inputs,
     check_input_shape,
-    check_input_subtype,
     copy_from_input_to_output,
 )
 from dagflow.storage import NodeStorage
 
 from numba import float64, njit, void
-from numpy import float_, integer, pi, sin, sqrt
+from numpy import float_, pi, sin, sqrt
 from numpy.typing import NDArray
 from scipy.constants import value
 
@@ -172,14 +171,17 @@ class NueSurvivalProbability(FunctionNode):
         inputs = storage.child('inputs')
         outputs = storage.child('outputs')
 
-        name: tuple = tuple(name.split('.'))
+        nametuple = tuple(name.split('.'))
         for key in replicate:
-            ckey = name + key
+            if isinstance(key, str):
+                ckey = nametuple + (key,)
+            else:
+                ckey = nametuple + key
             cname = ".".join(ckey)
             oscprob = cls(cname, *args, **kwargs)
             nodes[ckey] = oscprob
-            inputs[name + ('enu',) + key] = oscprob.inputs[0]
-            inputs[name + ('L',) + key] = oscprob.inputs['L']
+            inputs[nametuple + ('enu',) + key] = oscprob.inputs[0]
+            inputs[nametuple + ('L',) + key] = oscprob.inputs['L']
             outputs[ckey] = oscprob.outputs[0]
 
         NodeStorage.update_current(storage, strict=True)

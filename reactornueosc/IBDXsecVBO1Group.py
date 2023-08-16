@@ -7,10 +7,11 @@ from dagflow.meta_node import MetaNode
 from typing import Tuple, TYPE_CHECKING
 if TYPE_CHECKING:
     from dagflow.storage import NodeStorage
+    from dagflow.lib.IntegratorGroup import IntegratorGroup
 
 class IBDXsecVBO1Group(MetaNode):
     __slots__ = ('_eename', )
-    __eename: str
+    _eename: str
 
     def __init__(
         self,
