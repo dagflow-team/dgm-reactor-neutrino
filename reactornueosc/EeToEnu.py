@@ -1,7 +1,7 @@
 from dagflow.input_extra import MissingInputAddPair
 from dagflow.nodes import FunctionNode
 
-from typing import Mapping, TYPE_CHECKING
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from dagflow.input import Input
     from dagflow.output import Output
@@ -46,7 +46,7 @@ class EeToEnu(FunctionNode):
         self._const_mp = self._add_input('ProtonMass', positional=False, keyword=True)
         self._const_mn = self._add_input('NeutronMass', positional=False, keyword=True)
 
-    def _fcn(self, _, inputs, outputs):
+    def _fcn(self):
         _enu(
             self._ee.data.ravel(),
             self._ctheta.data.ravel(),
@@ -69,8 +69,8 @@ class EeToEnu(FunctionNode):
         check_input_dimension(self, slice(0, 2), 2)
         check_inputs_equivalence(self, slice(0, 2))
         eename = self._use_edep and 'edep' or 'ee'
-        copy_from_input_to_output(self, eename, 'result', edges=False, nodes=False)
-        assign_output_axes_from_inputs(self, (eename, 'costheta'), 'result', assign_nodes=True)
+        copy_from_input_to_output(self, eename, 'result', edges=False, meshes=False)
+        assign_output_axes_from_inputs(self, (eename, 'costheta'), 'result', assign_meshes=True)
 
 from numba import njit, void, float64, boolean
 # NOTE: these functions are used only in non-numba case

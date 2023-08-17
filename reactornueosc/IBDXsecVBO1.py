@@ -3,9 +3,8 @@ from dagflow.nodes import FunctionNode
 from dagflow.input import Input
 from dagflow.output import Output
 
-from typing import Mapping
 
-class IBDXsecO1(FunctionNode):
+class IBDXsecVBO1(FunctionNode):
     """Inverse beta decay cross section by Vogel and Beacom"""
     __slots__ = (
         '_enu', '_ctheta',
@@ -51,7 +50,7 @@ class IBDXsecO1(FunctionNode):
         self._const_f    = self._add_input('f', positional=False, keyword=True)
         self._const_f2   = self._add_input('f2', positional=False, keyword=True)
 
-    def _fcn(self, _, inputs, outputs):
+    def _fcn(self):
         _ibdxsecO1(
                 self._enu.data.ravel(),
                 self._ctheta.data.ravel(),
@@ -73,8 +72,8 @@ class IBDXsecO1(FunctionNode):
         check_input_dtype(self, slice(None), 'd')
         check_input_dimension(self, slice(0, 1), 2)
         check_inputs_equivalence(self, slice(0, 1))
-        copy_from_input_to_output(self, 'enu', 'result', edges=False, nodes=False)
-        assign_output_axes_from_inputs(self, ('enu', 'costheta'), 'result', assign_nodes=True)
+        copy_from_input_to_output(self, 'enu', 'result', edges=False, meshes=False)
+        assign_output_axes_from_inputs(self, ('enu', 'costheta'), 'result', assign_meshes=True)
 
 from scipy.constants import value as constant
 _constant_hbar = constant('reduced Planck constant')

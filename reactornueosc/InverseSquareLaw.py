@@ -27,7 +27,7 @@ class InverseSquareLaw(OneToOneNode):
         super().__init__(*args, **kwargs)
         self._labels.setdefault("mark", "1/(4πL²)")
 
-    def _fcn(self, _, inputs, outputs):
-        for inp, out in zip(inputs.iter_data(), outputs.iter_data()):
+    def _fcn(self):
+        for inp, out in zip(self.inputs.iter_data(), self.outputs.iter_data()):
             _inv_sq_law(inp.ravel(), out.ravel())
-        return list(outputs.iter_data())
+        return list(self.outputs.iter_data())
