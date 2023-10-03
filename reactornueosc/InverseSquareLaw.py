@@ -30,4 +30,3 @@ class InverseSquareLaw(OneToOneNode):
     def _fcn(self):
         for inp, out in zip(self.inputs.iter_data(), self.outputs.iter_data()):
             _inv_sq_law(inp.ravel(), out.ravel())
-        return list(self.outputs.iter_data())
