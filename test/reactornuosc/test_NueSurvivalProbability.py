@@ -61,7 +61,7 @@ def test_NueSurvivalProbability_01(
         - SinSq2Theta12 * _CosQuTheta13 * sin(DeltaMSq21 * tmp) ** 2
     )
 
-    atol = finfo("d").precision * 2
+    atol = finfo("d").resolution * 2
     assert oscprob.tainted is True
     assert allclose(oscprob.outputs[0].data, res, rtol=0, atol=atol)
     assert oscprob.tainted is False

@@ -19,7 +19,7 @@ def test_InverseSquareLaw_01(debug_graph, testname, dtype):
         isl = InverseSquareLaw("InvSqLaw")
         arrays >> isl
 
-    atol = finfo(dtype).precision * 2
+    atol = finfo(dtype).resolution * 2
     assert isl.tainted is True
     assert all(output.dd.dtype == dtype for output in isl.outputs)
     assert all(

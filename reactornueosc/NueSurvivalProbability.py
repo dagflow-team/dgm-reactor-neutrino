@@ -19,9 +19,7 @@ from dagflow.typefunctions import (
 )
 from multikeydict.typing import KeyLike
 
-_oscprobArgConversion = (
-    pi * 2e-3 * value("electron volt-inverse meter relationship")
-)
+_oscprobArgConversion = pi * 2e-3 * value("electron volt-inverse meter relationship")
 
 
 @njit(
@@ -61,10 +59,7 @@ def _osc_prob(
         out[i] = (
             1
             - SinSq2Theta13
-            * (
-                _SinSqTheta12 * sin(_DeltaMSq32 * L4E) ** 2
-                + _CosSqTheta12 * sin(_DeltaMSq31 * L4E) ** 2
-            )
+            * (_SinSqTheta12 * sin(_DeltaMSq32 * L4E) ** 2 + _CosSqTheta12 * sin(_DeltaMSq31 * L4E) ** 2)
             - SinSq2Theta12 * _CosQuTheta13 * sin(DeltaMSq21 * L4E) ** 2
         )
 
@@ -113,10 +108,21 @@ class NueSurvivalProbability(FunctionNode):
     _SinSq2Theta13: "Input"
     _result: "Output"
 
-    def __init__(
-        self, *args, distance_unit: Literal["km", "m"] = "km", **kwargs
-    ):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, distance_unit: Literal["km", "m"] = "km", **kwargs):
+        super().__init__(
+            *args,
+            **kwargs,
+            allowed_kw_inputs=(
+                "E",
+                "L",
+                "SinSq2Theta13",
+                "SinSq2Theta12",
+                "DeltaMSq32",
+                "DeltaMSq21",
+                "nmo",
+                "oscprobArgConversion",
+            ),
+        )
         self._labels.setdefault("mark", "P(ee)")
         self._E, self._result = self._add_pair("E", "result")
         self._L = self._add_input("L", positional=False)
@@ -146,9 +152,7 @@ class NueSurvivalProbability(FunctionNode):
         )
         # check_input_subtype(self, "nmo", integer)
         copy_from_input_to_output(self, "E", "result")
-        assign_output_axes_from_inputs(
-            self, "E", "result", assign_meshes=True, overwrite_assigned=True
-        )
+        assign_output_axes_from_inputs(self, "E", "result", assign_meshes=True, overwrite_assigned=True)
 
     def _fcn(self):
         out = self._result.data.ravel()
@@ -160,9 +164,7 @@ class NueSurvivalProbability(FunctionNode):
         DeltaMSq32 = self._DeltaMSq32.data[0]
         nmo = self._nmo.data[0]
 
-        if (
-            conversionInput := self.inputs.get("oscprobArgConversion")
-        ) is not None:
+        if (conversionInput := self.inputs.get("oscprobArgConversion")) is not None:
             oscprobArgConversion = conversionInput.data[0]
         else:
             oscprobArgConversion = _oscprobArgConversion
@@ -178,7 +180,6 @@ class NueSurvivalProbability(FunctionNode):
             nmo,
             oscprobArgConversion,
         )
-        return out
 
     @classmethod
     def replicate(
@@ -191,9 +192,7 @@ class NueSurvivalProbability(FunctionNode):
 
         nametuple = tuple(name.split("."))
         for key in replicate:
-            ckey = (
-                nametuple + (key,) if isinstance(key, str) else nametuple + key
-            )
+            ckey = nametuple + (key,) if isinstance(key, str) else nametuple + key
             cname = ".".join(ckey)
             oscprob = cls(cname, *args, **kwargs)
             nodes[ckey] = oscprob
