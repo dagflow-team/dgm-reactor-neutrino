@@ -2,7 +2,7 @@ from .IBDXsecVBO1 import IBDXsecVBO1
 from .EeToEnu import EeToEnu
 from .Jacobian_dEnu_dEe import Jacobian_dEnu_dEe
 
-from dagflow.meta_node import MetaNode
+from dagflow.metanode import MetaNode
 
 from typing import Tuple, TYPE_CHECKING
 if TYPE_CHECKING:

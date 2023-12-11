@@ -1,4 +1,4 @@
-from dagflow.input_extra import MissingInputAddPair
+from dagflow.inputhandler import MissingInputAddPair
 from dagflow.nodes import FunctionNode
 
 from typing import TYPE_CHECKING
