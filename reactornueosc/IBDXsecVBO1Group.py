@@ -22,7 +22,7 @@ class IBDXsecVBO1Group(MetaNode):
         use_edep: bool=False,
         labels: dict={}
     ):
-        super().__init__()
+        super().__init__(strategy="Disable")
 
         ibdxsec = IBDXsecVBO1(name_ibd, label=labels.get('xsec', {}))
         eetoenu = EeToEnu(name_enu, use_edep=use_edep, label=labels.get('enu', {}))
