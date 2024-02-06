@@ -5,7 +5,7 @@ from dagflow.lib.Array import Array
 from dagflow.bundles.load_parameters import load_parameters
 from numpy import linspace, meshgrid, meshgrid
 
-from reactornueosc.IBDXsecVBO1Group import IBDXsecVBO1Group
+from dgf_reactoranueosc.IBDXsecVBO1Group import IBDXsecVBO1Group
 from dagflow.plot import plot_auto
 
 from matplotlib.pyplot import close, subplots

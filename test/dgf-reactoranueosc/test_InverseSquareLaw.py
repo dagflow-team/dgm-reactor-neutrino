@@ -6,7 +6,7 @@ from dagflow.lib.Array import Array
 from numpy import allclose, finfo, linspace, pi
 from pytest import mark
 
-from reactornueosc.InverseSquareLaw import InverseSquareLaw
+from dgf_reactoranueosc.InverseSquareLaw import InverseSquareLaw
 
 
 @mark.parametrize("dtype", ("d", "f"))
