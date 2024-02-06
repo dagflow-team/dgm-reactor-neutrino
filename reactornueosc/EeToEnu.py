@@ -1,7 +1,7 @@
+from typing import TYPE_CHECKING
+
 from dagflow.inputhandler import MissingInputAddPair
 from dagflow.nodes import FunctionNode
-
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from dagflow.input import Input
     from dagflow.output import Output

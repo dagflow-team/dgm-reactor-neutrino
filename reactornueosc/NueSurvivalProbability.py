@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Literal, Optional, Tuple
+from typing import TYPE_CHECKING, Literal, Optional
 
 if TYPE_CHECKING:
     from dagflow.node import Node
@@ -12,11 +12,9 @@ from scipy.constants import value
 
 from dagflow.nodes import FunctionNode
 from dagflow.storage import NodeStorage
-from dagflow.typefunctions import (
-    assign_output_axes_from_inputs,
-    check_input_shape,
-    copy_from_input_to_output,
-)
+from dagflow.typefunctions import (assign_output_axes_from_inputs,
+                                   check_input_shape,
+                                   copy_from_input_to_output)
 from multikeydict.typing import KeyLike
 
 _oscprobArgConversion = pi * 2e-3 * value("electron volt-inverse meter relationship")
@@ -183,8 +181,8 @@ class NueSurvivalProbability(FunctionNode):
 
     @classmethod
     def replicate(
-        cls, name: str, *args, replicate: Tuple[KeyLike, ...] = ((),), **kwargs
-    ) -> Tuple[Optional["Node"], NodeStorage]:
+        cls, name: str, *args, replicate: tuple[KeyLike, ...] = ((),), **kwargs
+    ) -> tuple[Optional["Node"], NodeStorage]:
         storage = NodeStorage()
         nodes = storage.child("nodes")
         inputs = storage.child("inputs")

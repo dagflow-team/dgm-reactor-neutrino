@@ -1,13 +1,14 @@
-from .IBDXsecVBO1 import IBDXsecVBO1
-from .EeToEnu import EeToEnu
-from .Jacobian_dEnu_dEe import Jacobian_dEnu_dEe
+from typing import TYPE_CHECKING
 
 from dagflow.metanode import MetaNode
 
-from typing import Tuple, TYPE_CHECKING
+from .EeToEnu import EeToEnu
+from .IBDXsecVBO1 import IBDXsecVBO1
+from .Jacobian_dEnu_dEe import Jacobian_dEnu_dEe
+
 if TYPE_CHECKING:
-    from dagflow.storage import NodeStorage
     from dagflow.lib.IntegratorGroup import IntegratorGroup
+    from dagflow.storage import NodeStorage
 
 class IBDXsecVBO1Group(MetaNode):
     __slots__ = ('_eename', )
@@ -62,7 +63,7 @@ class IBDXsecVBO1Group(MetaNode):
         name_jacobian: str = 'ibd.jacobian',
         *args,
         **kwargs
-    ) -> Tuple["IntegratorGroup", "NodeStorage"]:
+    ) -> tuple["IntegratorGroup", "NodeStorage"]:
         from dagflow.storage import NodeStorage
         storage = NodeStorage(default_containers=True)
         nodes = storage.child('nodes')

@@ -1,6 +1,6 @@
+from dagflow.input import Input
 from dagflow.inputhandler import MissingInputAddPair
 from dagflow.nodes import FunctionNode
-from dagflow.input import Input
 from dagflow.output import Output
 
 
@@ -146,4 +146,3 @@ def _ibdxsecO1(
         sigma1b = -0.5 * sigma0 * Ee0 * pe0 * ( gamma_1 + gamma_2 + gamma_3 + gamma_4 ) / NucleonMass
 
         Result[i]=MeV2cm*(sigma1a + sigma1b)
-

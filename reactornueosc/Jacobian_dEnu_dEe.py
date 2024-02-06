@@ -1,6 +1,6 @@
+from dagflow.input import Input
 from dagflow.inputhandler import MissingInputAddPair
 from dagflow.nodes import FunctionNode
-from dagflow.input import Input
 from dagflow.output import Output
 
 
