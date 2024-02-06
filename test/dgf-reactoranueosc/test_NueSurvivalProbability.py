@@ -8,7 +8,7 @@ from matplotlib.pyplot import subplots
 from numpy import allclose, finfo, geomspace, sin, sqrt
 from pytest import mark
 
-from reactornueosc.NueSurvivalProbability import (
+from dgf_reactoranueosc.NueSurvivalProbability import (
     NueSurvivalProbability,
     _oscprobArgConversion,
 )

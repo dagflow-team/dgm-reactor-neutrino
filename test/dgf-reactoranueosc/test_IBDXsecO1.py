@@ -5,9 +5,9 @@ from dagflow.lib.Array import Array
 from dagflow.bundles.load_parameters import load_parameters
 from numpy import linspace, meshgrid, meshgrid
 
-from reactornueosc.IBDXsecVBO1 import IBDXsecVBO1
-from reactornueosc.EeToEnu import EeToEnu
-from reactornueosc.Jacobian_dEnu_dEe import Jacobian_dEnu_dEe
+from dgf_reactoranueosc.IBDXsecVBO1 import IBDXsecVBO1
+from dgf_reactoranueosc.EeToEnu import EeToEnu
+from dgf_reactoranueosc.Jacobian_dEnu_dEe import Jacobian_dEnu_dEe
 from dagflow.plot import plot_auto
 
 from matplotlib.pyplot import close, subplots
