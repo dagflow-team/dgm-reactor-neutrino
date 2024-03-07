@@ -12,9 +12,11 @@ from scipy.constants import value
 
 from dagflow.nodes import FunctionNode
 from dagflow.storage import NodeStorage
-from dagflow.typefunctions import (assign_output_axes_from_inputs,
-                                   check_input_shape,
-                                   copy_from_input_to_output)
+from dagflow.typefunctions import (
+    assign_output_axes_from_inputs,
+    check_input_shape,
+    copy_from_input_to_output,
+)
 from multikeydict.typing import KeyLike
 
 _oscprobArgConversion = pi * 2e-3 * value("electron volt-inverse meter relationship")
@@ -57,7 +59,10 @@ def _osc_prob(
         out[i] = (
             1
             - SinSq2Theta13
-            * (_SinSqTheta12 * sin(_DeltaMSq32 * L4E) ** 2 + _CosSqTheta12 * sin(_DeltaMSq31 * L4E) ** 2)
+            * (
+                _SinSqTheta12 * sin(_DeltaMSq32 * L4E) ** 2
+                + _CosSqTheta12 * sin(_DeltaMSq31 * L4E) ** 2
+            )
             - SinSq2Theta12 * _CosQuTheta13 * sin(DeltaMSq21 * L4E) ** 2
         )
 
@@ -150,7 +155,9 @@ class NueSurvivalProbability(FunctionNode):
         )
         # check_input_subtype(self, "nmo", integer)
         copy_from_input_to_output(self, "E", "result")
-        assign_output_axes_from_inputs(self, "E", "result", assign_meshes=True, overwrite_assigned=True)
+        assign_output_axes_from_inputs(
+            self, "E", "result", assign_meshes=True, overwrite_assigned=True
+        )
 
     def _fcn(self):
         out = self._result.data.ravel()
@@ -181,7 +188,7 @@ class NueSurvivalProbability(FunctionNode):
 
     @classmethod
     def replicate(
-        cls, name: str, *args, replicate: tuple[KeyLike, ...] = ((),), **kwargs
+        cls, *args, name: str, replicate: tuple[KeyLike, ...] = ((),), **kwargs
     ) -> tuple[Optional["Node"], NodeStorage]:
         storage = NodeStorage()
         nodes = storage.child("nodes")
