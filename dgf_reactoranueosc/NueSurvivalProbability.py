@@ -53,7 +53,7 @@ def _osc_prob(
     _DeltaMSq31 = nmo * DeltaMSq32 + DeltaMSq21  # Δm²₃₁ = α*|Δm²₃₂| + Δm²₂₁
     _SinSqTheta12 = 0.5 * (1 - sqrt(1 - SinSq2Theta12))  # sin²θ₁₂
     _CosSqTheta12 = 1.0 - _SinSqTheta12  # cos²θ₁₂
-    _CosQuTheta13 = (0.5 * (1 - sqrt(1 - SinSq2Theta13))) ** 2  # cos⁴θ₁₃
+    _CosQuTheta13 = (1 - 0.5 * (1 - sqrt(1 - SinSq2Theta13))) ** 2  # cos⁴θ₁₃
 
     sinCommonArg = oscprobArgConversion * L / 4.0
     for i in range(len(out)):
