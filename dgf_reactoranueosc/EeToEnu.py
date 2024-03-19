@@ -94,7 +94,6 @@ def _enu(
         if Ee>ElectronMass:
             Ve = sqrt(1.0 - ElectronMass2 / (Ee*Ee))
         else:
-            Ee = ElectronMass
             Ve = 0.0
         epsilon_e = Ee / ProtonMass
         Ee0 = Ee + delta
