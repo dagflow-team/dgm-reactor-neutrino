@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Literal, Optional
 
 if TYPE_CHECKING:
@@ -194,7 +196,12 @@ class NueSurvivalProbability(FunctionNode):
 
     @classmethod
     def replicate(
-        cls, *args, name: str, replicate: tuple[KeyLike, ...] = ((),), **kwargs
+        cls,
+        *args,
+        name: str,
+        replicate: tuple[KeyLike, ...] = ((),),
+        oscprobArgConversion: Output | Literal[True] | None = None,
+        **kwargs
     ) -> tuple[Optional["Node"], NodeStorage]:
         storage = NodeStorage()
         nodes = storage.child("nodes")
@@ -210,6 +217,12 @@ class NueSurvivalProbability(FunctionNode):
             inputs[nametuple + ("enu",) + key] = oscprob.inputs[0]
             inputs[nametuple + ("L",) + key] = oscprob.inputs["L"]
             outputs[ckey] = oscprob.outputs[0]
+
+            if oscprobArgConversion:
+                if oscprobArgConversion==True:
+                    inputs[nametuple + ("oscprobArgConversion",) + key] = oscprob("oscprobArgConversion")
+                else:
+                    oscprobArgConversion >> oscprob("oscprobArgConversion")
 
         NodeStorage.update_current(storage, strict=True)
 
