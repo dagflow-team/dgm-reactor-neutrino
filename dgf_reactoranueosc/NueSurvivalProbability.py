@@ -99,6 +99,7 @@ class NueSurvivalProbability(FunctionNode):
         "_DeltaMSq21",
         "_DeltaMSq32",
         "_nmo",
+        "_conversionInput",
     )
 
     _baseline_scale: float
@@ -109,7 +110,8 @@ class NueSurvivalProbability(FunctionNode):
     _DeltaMSq32: "Input"
     _SinSq2Theta12: "Input"
     _SinSq2Theta13: "Input"
-    _result: "Output"
+    _result: Output
+    _conversionInput: Output | None
 
     def __init__(self, *args, distance_unit: Literal["km", "m"] = "km", **kwargs):
         super().__init__(
@@ -134,6 +136,7 @@ class NueSurvivalProbability(FunctionNode):
         self._DeltaMSq21 = self._add_input("DeltaMSq21", positional=False)
         self._DeltaMSq32 = self._add_input("DeltaMSq32", positional=False)
         self._nmo = self._add_input("nmo", positional=False)
+        self._conversionInput = None
         try:
             self._baseline_scale = {"km": 1, "m": 1.0e-3}[distance_unit]
         except KeyError as e:
@@ -159,6 +162,8 @@ class NueSurvivalProbability(FunctionNode):
             self, "E", "result", assign_meshes=True, overwrite_assigned=True
         )
 
+        self._conversionInput = self.inputs.get("oscprobArgConversion")
+
     def _fcn(self):
         out = self._result.data.ravel()
         E = self._E.data.ravel()
@@ -169,10 +174,11 @@ class NueSurvivalProbability(FunctionNode):
         DeltaMSq32 = self._DeltaMSq32.data[0]
         nmo = self._nmo.data[0]
 
-        if (conversionInput := self.inputs.get("oscprobArgConversion")) is not None:
-            oscprobArgConversion = conversionInput.data[0]
-        else:
-            oscprobArgConversion = _oscprobArgConversion
+        oscprobArgConversion = (
+            _oscprobArgConversion
+            if self._conversionInput is None
+            else self._conversionInput.data[0]
+        )
 
         _osc_prob(
             out,
