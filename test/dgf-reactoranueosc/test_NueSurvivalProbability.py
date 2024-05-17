@@ -1,17 +1,15 @@
 #!/usr/bin/env python
 
+from matplotlib.pyplot import subplots
+from numpy import allclose, arcsin, cos, finfo, geomspace, sin, sqrt
+from pytest import mark
+
 from dagflow.graph import Graph
 from dagflow.graphviz import savegraph
 from dagflow.lib.Array import Array
 from dagflow.plot import plot_auto
-from matplotlib.pyplot import subplots
-from numpy import allclose, finfo, geomspace, sin, sqrt
-from pytest import mark
-
-from dgf_reactoranueosc.NueSurvivalProbability import (
-    NueSurvivalProbability,
-    _oscprobArgConversion,
-)
+from dgf_reactoranueosc.NueSurvivalProbability import (NueSurvivalProbability,
+                                                       _oscprobArgConversion)
 
 
 @mark.parametrize("nmo", (1, -1))  # mass ordering
@@ -48,9 +46,11 @@ def test_NueSurvivalProbability_01(
     tmp = L * conversionFactor / 4.0 / E
     _DeltaMSq32 = nmo * DeltaMSq32  # Δm²₃₂ = α*|Δm²₃₂|
     _DeltaMSq31 = nmo * DeltaMSq32 + DeltaMSq21  # Δm²₃₁ = α*|Δm²₃₂| + Δm²₂₁
-    _SinSqTheta12 = 0.5 * (1 - sqrt(1 - SinSq2Theta12))  # sin²θ₁₂
-    _CosSqTheta12 = 1.0 - _SinSqTheta12  # cos²θ₁₂
-    _CosQuTheta13 = (0.5 * (1 - sqrt(1 - SinSq2Theta13))) ** 2  # cos^4 θ₁₃
+    theta12 = 0.5*arcsin(sqrt(SinSq2Theta12))
+    theta13 = 0.5*arcsin(sqrt(SinSq2Theta13))
+    _SinSqTheta12 = sin(theta12)**2  # sin²θ₁₂
+    _CosSqTheta12 = cos(theta12)**2  # cos²θ₁₂
+    _CosQuTheta13 = (cos(theta13)**2)**2 # cos^4 θ₁₃
     res = (
         1
         - SinSq2Theta13

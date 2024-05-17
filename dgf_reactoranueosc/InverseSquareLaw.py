@@ -16,8 +16,8 @@ def _inv_sq_law(data: NDArray, out: NDArray):
 
 
 _scales = {
-    "km_to_cm": 1e8,
-    "m_to_cm": 1e2,
+    "km_to_cm": 1e-10,
+    "m_to_cm": 1e-4,
     None: None
 }
 
