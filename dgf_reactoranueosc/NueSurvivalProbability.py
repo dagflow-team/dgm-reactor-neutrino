@@ -199,7 +199,7 @@ class NueSurvivalProbability(FunctionNode):
         cls,
         *args,
         name: str,
-        replicate: tuple[KeyLike, ...] = ((),),
+        replicate_outputs: tuple[KeyLike, ...] = ((),),
         oscprobArgConversion: Output | Literal[True] | None = None,
         **kwargs
     ) -> tuple[Optional["Node"], NodeStorage]:
@@ -209,7 +209,7 @@ class NueSurvivalProbability(FunctionNode):
         outputs = storage.child("outputs")
 
         nametuple = tuple(name.split("."))
-        for key in replicate:
+        for key in replicate_outputs:
             ckey = nametuple + (key,) if isinstance(key, str) else nametuple + key
             cname = ".".join(ckey)
             oscprob = cls(cname, *args, **kwargs)
