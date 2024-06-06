@@ -15,11 +15,7 @@ def _inv_sq_law(data: NDArray, out: NDArray):
         out[i] = _pi4 / data[i] ** 2
 
 
-_scales = {
-    "km_to_cm": 1e-10,
-    "m_to_cm": 1e-4,
-    None: None
-}
+_scales = {"km_to_cm": 1e-10, "m_to_cm": 1e-4, None: 1.0}
 
 
 class InverseSquareLaw(OneToOneNode):
@@ -34,21 +30,26 @@ class InverseSquareLaw(OneToOneNode):
     """
 
     __slots__ = ("_scale",)
-    _scale: float | None
+    _scale: float
 
     def __init__(
-        self,
-        *args,
-        scale: Literal["km_to_cm", "m_to_cm", None] = None,
-        **kwargs
+        self, *args, scale: Literal["km_to_cm", "m_to_cm", None] = None, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self._labels.setdefault("mark", "1/(4πL²)")
         self._scale = _scales[scale]
 
-    def _fcn(self):
+        self._functions.update({"normal": self._fcn_normal, "scaled": self._fcn_scaled})
+        if scale is None or self._scale==1.0:
+            self.fcn = self._fcn_normal
+        else:
+            self.fcn = self._fcn_scaled
+    def _fcn_normal(self):
         for inp, out in zip(self.inputs.iter_data(), self.outputs.iter_data()):
             _inv_sq_law(inp.ravel(), out.ravel())
 
-            if (scale:=self._scale) is not None:
-                multiply(out, scale, out=out)
+    def _fcn_scaled(self):
+        scale = self._scale
+        for inp, out in zip(self.inputs.iter_data(), self.outputs.iter_data()):
+            _inv_sq_law(inp.ravel(), out.ravel())
+            multiply(out, scale, out=out)
