@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, Optional
+from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from dagflow.node import Node
     from dagflow.input import Input
     from dagflow.output import Output
+    from numpy.typing import NDArray
 
 from numba import float64, njit, void
 from numpy import float_, pi, sin, sqrt
-from numpy.typing import NDArray
 from scipy.constants import value
 
 from dagflow.nodes import FunctionNode
@@ -105,13 +105,13 @@ class NueSurvivalProbability(FunctionNode):
     )
 
     _baseline_scale: float
-    _E: "Input"
-    _L: "Input"
-    _nmo: "Input"
-    _DeltaMSq21: "Input"
-    _DeltaMSq32: "Input"
-    _SinSq2Theta12: "Input"
-    _SinSq2Theta13: "Input"
+    _E: Input
+    _L: Input
+    _nmo: Input
+    _DeltaMSq21: Input
+    _DeltaMSq32: Input
+    _SinSq2Theta12: Input
+    _SinSq2Theta13: Input
     _result: Output
     _conversionInput: Output | None
 
@@ -201,8 +201,8 @@ class NueSurvivalProbability(FunctionNode):
         name: str,
         replicate_outputs: tuple[KeyLike, ...] = ((),),
         oscprobArgConversion: Output | Literal[True] | None = None,
-        **kwargs
-    ) -> tuple[Optional["Node"], NodeStorage]:
+        **kwargs,
+    ) -> tuple[Node | None, NodeStorage]:
         storage = NodeStorage()
         nodes = storage.child("nodes")
         inputs = storage.child("inputs")
@@ -219,8 +219,10 @@ class NueSurvivalProbability(FunctionNode):
             outputs[ckey] = oscprob.outputs[0]
 
             if oscprobArgConversion:
-                if oscprobArgConversion==True:
-                    inputs[nametuple + ("oscprobArgConversion",) + key] = oscprob("oscprobArgConversion")
+                if oscprobArgConversion == True:
+                    inputs[nametuple + ("oscprobArgConversion",) + key] = oscprob(
+                        "oscprobArgConversion"
+                    )
                 else:
                     oscprobArgConversion >> oscprob("oscprobArgConversion")
 
