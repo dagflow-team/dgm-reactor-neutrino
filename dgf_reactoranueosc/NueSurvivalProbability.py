@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
 from numba import float64, njit, void
-from numpy import float_, pi, sin, sqrt
+from numpy import double, pi, sin, sqrt
 from scipy.constants import value
 
 from dagflow.nodes import FunctionNode
@@ -39,8 +39,8 @@ _oscprobArgConversion = pi * 2e-3 * value("electron volt-inverse meter relations
     cache=True,
 )
 def _osc_prob(
-    out: NDArray[float_],
-    E: NDArray[float_],
+    out: NDArray[double],
+    E: NDArray[double],
     L: float,
     SinSq2Theta12: float,
     SinSq2Theta13: float,
