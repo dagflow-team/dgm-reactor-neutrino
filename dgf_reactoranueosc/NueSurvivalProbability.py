@@ -1,25 +1,29 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
-
-if TYPE_CHECKING:
-    from dagflow.node import Node
-    from dagflow.input import Input
-    from dagflow.output import Output
-    from numpy.typing import NDArray
+from typing import TYPE_CHECKING
 
 from numba import float64, njit, void
-from numpy import double, pi, sin, sqrt
+from numpy import pi, sin, sqrt
 from scipy.constants import value
 
-from dagflow.nodes import FunctionNode
+from dagflow.node import Node
 from dagflow.storage import NodeStorage
 from dagflow.typefunctions import (
     assign_output_axes_from_inputs,
     check_input_shape,
     copy_from_input_to_output,
 )
-from multikeydict.typing import KeyLike
+
+if TYPE_CHECKING:
+    from typing import Literal
+
+    from numpy import double
+    from numpy.typing import NDArray
+
+    from dagflow.input import Input
+    from dagflow.node import Node
+    from dagflow.output import Output
+    from multikeydict.typing import KeyLike
 
 _oscprobArgConversion = pi * 2e-3 * value("electron volt-inverse meter relationship")
 
@@ -61,15 +65,12 @@ def _osc_prob(
         out[i] = (
             1
             - SinSq2Theta13
-            * (
-                _SinSqTheta12 * sin(_DeltaMSq32 * L4E) ** 2
-                + _CosSqTheta12 * sin(_DeltaMSq31 * L4E) ** 2
-            )
+            * (_SinSqTheta12 * sin(_DeltaMSq32 * L4E) ** 2 + _CosSqTheta12 * sin(_DeltaMSq31 * L4E) ** 2)
             - SinSq2Theta12 * _CosQuTheta13 * sin(DeltaMSq21 * L4E) ** 2
         )
 
 
-class NueSurvivalProbability(FunctionNode):
+class NueSurvivalProbability(Node):
     """
     inputs:
         `E`: array of the energies
@@ -160,9 +161,7 @@ class NueSurvivalProbability(FunctionNode):
         )
         # check_input_subtype(self, "nmo", integer)
         copy_from_input_to_output(self, "E", "result")
-        assign_output_axes_from_inputs(
-            self, "E", "result", assign_meshes=True, overwrite_assigned=True
-        )
+        assign_output_axes_from_inputs(self, "E", "result", assign_meshes=True, overwrite_assigned=True)
 
         self._conversionInput = self.inputs.get("oscprobArgConversion")
 
@@ -177,9 +176,7 @@ class NueSurvivalProbability(FunctionNode):
         nmo = self._nmo.data[0]
 
         oscprobArgConversion = (
-            _oscprobArgConversion
-            if self._conversionInput is None
-            else self._conversionInput.data[0]
+            _oscprobArgConversion if self._conversionInput is None else self._conversionInput.data[0]
         )
 
         _osc_prob(
@@ -220,9 +217,7 @@ class NueSurvivalProbability(FunctionNode):
 
             if oscprobArgConversion:
                 if oscprobArgConversion == True:
-                    inputs[nametuple + ("oscprobArgConversion",) + key] = oscprob(
-                        "oscprobArgConversion"
-                    )
+                    inputs[nametuple + ("oscprobArgConversion",) + key] = oscprob("oscprobArgConversion")
                 else:
                     oscprobArgConversion >> oscprob("oscprobArgConversion")
 

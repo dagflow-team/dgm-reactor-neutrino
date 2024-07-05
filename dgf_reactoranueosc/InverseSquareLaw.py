@@ -1,10 +1,16 @@
-from typing import Literal
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from numba import njit
 from numpy import multiply, pi
-from numpy.typing import NDArray
 
 from dagflow.lib.OneToOneNode import OneToOneNode
+
+if TYPE_CHECKING:
+    from typing import Literal
+
+    from numpy.typing import NDArray
 
 _pi4 = 0.25 / pi
 
@@ -32,18 +38,17 @@ class InverseSquareLaw(OneToOneNode):
     __slots__ = ("_scale",)
     _scale: float
 
-    def __init__(
-        self, *args, scale: Literal["km_to_cm", "m_to_cm", None] = None, **kwargs
-    ):
+    def __init__(self, *args, scale: Literal["km_to_cm", "m_to_cm", None] = None, **kwargs):
         super().__init__(*args, **kwargs)
         self._labels.setdefault("mark", "1/(4πL²)")
         self._scale = _scales[scale]
 
         self._functions.update({"normal": self._fcn_normal, "scaled": self._fcn_scaled})
-        if scale is None or self._scale==1.0:
+        if scale is None or self._scale == 1.0:
             self.fcn = self._fcn_normal
         else:
             self.fcn = self._fcn_scaled
+
     def _fcn_normal(self):
         for inp, out in zip(self.inputs.iter_data(), self.outputs.iter_data()):
             _inv_sq_law(inp.ravel(), out.ravel())
