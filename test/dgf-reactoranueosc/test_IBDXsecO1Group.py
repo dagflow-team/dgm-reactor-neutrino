@@ -42,7 +42,7 @@ def test_IBDXsecVBO1Group(debug_graph, testname):
     enu2, ctheta2 = meshgrid(enu1, ctheta1, indexing='ij')
     ee2, _ = meshgrid(ee1, ctheta1, indexing='ij')
 
-    with Graph(debug=debug_graph, close=True) as graph:
+    with Graph(debug=debug_graph, close_on_exit=True) as graph:
         storage = load_parameters(data)
 
         ee = Array(
