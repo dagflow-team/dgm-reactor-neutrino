@@ -1,7 +1,5 @@
-contextlib2
 coverage
 numba
-numpy
 pytest
 pytest-cov
 scipy
