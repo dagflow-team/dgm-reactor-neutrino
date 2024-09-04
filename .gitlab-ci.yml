@@ -12,9 +12,7 @@ tests:
     - apt-get -y install libgraphviz-dev graphviz
     - python3 -m venv venv
     - source venv/bin/activate
-    - pip install --upgrade wheel setuptools pip
-    - pip install cython
-    - python3 -m pip install -r requirements.txt
+    - python3 -m pip install $(find . -name requirements.txt -type f -printf "-r %p\n")
     - git submodule sync
     - git submodule update --init --recursive --depth=1 -- submodules/dag-flow
     - mkdir output
