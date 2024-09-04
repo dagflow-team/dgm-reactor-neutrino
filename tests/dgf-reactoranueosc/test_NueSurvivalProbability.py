@@ -27,7 +27,7 @@ def test_NueSurvivalProbability_01(
     SinSq2Theta12 = 3.1 * 1e-1  # [-]
     SinSq2Theta13 = 2.241 * 1e-2  # [-]
 
-    with Graph(close=True, debug=debug_graph) as graph:
+    with Graph(close_on_exit=True, debug=debug_graph) as graph:
         oscprob = NueSurvivalProbability("P(ee)")
         Array("E", E) >> oscprob("E")
         Array("L", [L]) >> oscprob("L")
