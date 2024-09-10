@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from numba import float32, float64, njit, void
+from numba import njit
 from numpy import pi, power, sqrt
 from scipy.constants import value as constant
 
@@ -73,8 +73,12 @@ class IBDXsecVBO1(Node):
         self._const_me = self._add_input("ElectronMass", positional=False, keyword=True)
         self._const_mp = self._add_input("ProtonMass", positional=False, keyword=True)
         self._const_mn = self._add_input("NeutronMass", positional=False, keyword=True)
-        self._const_taun = self._add_input("NeutronLifeTime", positional=False, keyword=True)
-        self._const_fps = self._add_input("PhaseSpaceFactor", positional=False, keyword=True)
+        self._const_taun = self._add_input(
+            "NeutronLifeTime", positional=False, keyword=True
+        )
+        self._const_fps = self._add_input(
+            "PhaseSpaceFactor", positional=False, keyword=True
+        )
         self._const_g = self._add_input("g", positional=False, keyword=True)
         self._const_f = self._add_input("f", positional=False, keyword=True)
         self._const_f2 = self._add_input("f2", positional=False, keyword=True)
@@ -100,7 +104,9 @@ class IBDXsecVBO1(Node):
         check_input_dimension(self, slice(0, 1), 2)
         check_inputs_equivalence(self, slice(0, 1))
         copy_from_input_to_output(self, "enu", "result", edges=False, meshes=False)
-        assign_output_axes_from_inputs(self, ("enu", "costheta"), "result", assign_meshes=True)
+        assign_output_axes_from_inputs(
+            self, ("enu", "costheta"), "result", assign_meshes=True
+        )
 
 
 _constant_hbar = constant("reduced Planck constant")
@@ -108,37 +114,7 @@ _constant_qe = constant("elementary charge")
 _constant_c = constant("speed of light in vacuum")
 
 
-@njit(
-    [
-        void(
-            float64[:],
-            float64[:],
-            float64[:],
-            float64,
-            float64,
-            float64,
-            float64,
-            float64,
-            float64,
-            float64,
-            float64,
-        ),
-        void(
-            float64[:],
-            float64[:],
-            float64[:],
-            float32,
-            float32,
-            float32,
-            float32,
-            float32,
-            float32,
-            float32,
-            float32,
-        ),
-    ],
-    cache=True,
-)
+@njit(cache=True)
 def _ibdxsecO1(
     EnuIn: NDArray[double],
     CosThetaIn: NDArray[double],
@@ -155,7 +131,9 @@ def _ibdxsecO1(
     ElectronMass2 = power(ElectronMass, 2)
     NeutronMass2 = power(NeutronMass, 2)
     NucleonMass = 0.5 * (NeutronMass + ProtonMass)
-    EnuThreshold = 0.5 * (NeutronMass2 / (ProtonMass - ElectronMass) - ProtonMass + ElectronMass)
+    EnuThreshold = 0.5 * (
+        NeutronMass2 / (ProtonMass - ElectronMass) - ProtonMass + ElectronMass
+    )
 
     DeltaNP = NeutronMass - ProtonMass
     const_y2 = 0.5 * (power(DeltaNP, 2) - ElectronMass2)
@@ -166,7 +144,11 @@ def _ibdxsecO1(
     sigma0_constant = 1.0e6 * _constant_qe / _constant_hbar
     ElectronMass5 = ElectronMass2 * ElectronMass2 * ElectronMass
     sigma0 = (2.0 * pi * pi) / (
-        const_fps * (const_fsq + 3.0 * const_gsq) * ElectronMass5 * NeutronLifeTime * sigma0_constant
+        const_fps
+        * (const_fsq + 3.0 * const_gsq)
+        * ElectronMass5
+        * NeutronLifeTime
+        * sigma0_constant
     )
 
     MeV2J = 1.0e6 * _constant_qe
@@ -186,7 +168,10 @@ def _ibdxsecO1(
         pe0 = sqrt(Ee0 * Ee0 - ElectronMass2)
         ve0 = pe0 / Ee0
 
-        Ee1 = Ee0 * (1.0 - Enu / NucleonMass * (1.0 - ve0 * ctheta)) - const_y2 / NucleonMass
+        Ee1 = (
+            Ee0 * (1.0 - Enu / NucleonMass * (1.0 - ve0 * ctheta))
+            - const_y2 / NucleonMass
+        )
         if Ee1 <= ElectronMass:
             Result[i] = 0.0
             continue
@@ -207,11 +192,20 @@ def _ibdxsecO1(
             * (const_f + const_f2)
             * ((2.0 * Ee0 + DeltaNP) * (1.0 - ve0 * ctheta) - ElectronMass2 / Ee0)
         )
-        gamma_2 = (const_fsq + const_gsq) * (DeltaNP * (1.0 + ve0 * ctheta) + ElectronMass2 / Ee0)
+        gamma_2 = (const_fsq + const_gsq) * (
+            DeltaNP * (1.0 + ve0 * ctheta) + ElectronMass2 / Ee0
+        )
         A = (Ee0 + DeltaNP) * (1.0 - ctheta / ve0) - DeltaNP
         gamma_3 = (const_fsq + 3.0 * const_gsq) * A
         gamma_4 = (const_fsq - const_gsq) * A * ve0 * ctheta
 
-        sigma1b = -0.5 * sigma0 * Ee0 * pe0 * (gamma_1 + gamma_2 + gamma_3 + gamma_4) / NucleonMass
+        sigma1b = (
+            -0.5
+            * sigma0
+            * Ee0
+            * pe0
+            * (gamma_1 + gamma_2 + gamma_3 + gamma_4)
+            / NucleonMass
+        )
 
         Result[i] = MeV2cm * (sigma1a + sigma1b)

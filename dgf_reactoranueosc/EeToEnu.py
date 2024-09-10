@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from numba import boolean, float64, njit, void
+from numba import njit
 from numpy import power, sqrt
 
 from dagflow.inputhandler import MissingInputAddPair
@@ -79,7 +79,7 @@ class EeToEnu(Node):
         assign_output_axes_from_inputs(self, (eename, "costheta"), "result", assign_meshes=True)
 
 
-@njit(void(float64[:], float64[:], float64[:], float64, float64, float64, boolean), cache=True)
+@njit(cache=True)
 def _enu(
     EeIn: NDArray[double],
     CosThetaIn: NDArray[double],
