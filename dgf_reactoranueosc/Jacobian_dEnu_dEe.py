@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from numba import boolean, float64, njit, void
-from numpy import power, sqrt
+from numba import njit
+from numpy import sqrt
 
 from dagflow.inputhandler import MissingInputAddPair
 from dagflow.node import Node
@@ -80,7 +80,7 @@ class Jacobian_dEnu_dEe(Node):
         assign_output_axes_from_inputs(self, (eename, "costheta"), "result", assign_meshes=True)
 
 
-@njit(void(float64[:], float64[:], float64[:], float64[:], float64, float64, boolean), cache=True)
+@njit(cache=True)
 def _jacobian_dEnu_dEe(
     EnuIn: NDArray[double],
     EeIn: NDArray[double],
@@ -90,7 +90,7 @@ def _jacobian_dEnu_dEe(
     ProtonMass: float,
     use_edep: bool,
 ):
-    ElectronMass2 = power(ElectronMass, 2)
+    ElectronMass2 = ElectronMass * ElectronMass
 
     for i, (Enu, Ee, ctheta) in enumerate(zip(EnuIn, EeIn, CosThetaIn)):
         if use_edep:

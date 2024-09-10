@@ -12,13 +12,14 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
-_pi4 = 0.25 / pi
+_forth_over_pi = 0.25 / pi
 
 
 @njit(cache=True)
 def _inv_sq_law(data: NDArray, out: NDArray):
     for i in range(len(out)):
-        out[i] = _pi4 / data[i] ** 2
+        L = data[i]
+        out[i] = _forth_over_pi / (L * L)
 
 
 _scales = {"km_to_cm": 1e-10, "m_to_cm": 1e-4, None: 1.0}
@@ -38,7 +39,9 @@ class InverseSquareLaw(OneToOneNode):
     __slots__ = ("_scale",)
     _scale: float
 
-    def __init__(self, *args, scale: Literal["km_to_cm", "m_to_cm", None] = None, **kwargs):
+    def __init__(
+        self, *args, scale: Literal["km_to_cm", "m_to_cm", None] = None, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self._labels.setdefault("mark", "1/(4πL²)")
         self._scale = _scales[scale]

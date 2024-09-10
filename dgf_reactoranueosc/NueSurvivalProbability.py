@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from numba import float64, njit, void
+from numba import njit
 from numpy import pi, sin, sqrt
 from scipy.constants import value
 
@@ -28,20 +28,7 @@ if TYPE_CHECKING:
 _oscprobArgConversion = pi * 2e-3 * value("electron volt-inverse meter relationship")
 
 
-@njit(
-    void(
-        float64[:],
-        float64[:],
-        float64,
-        float64,
-        float64,
-        float64,
-        float64,
-        float64,
-        float64,
-    ),
-    cache=True,
-)
+@njit(cache=True)
 def _osc_prob(
     out: NDArray[double],
     E: NDArray[double],
@@ -57,16 +44,20 @@ def _osc_prob(
     _DeltaMSq31 = nmo * DeltaMSq32 + DeltaMSq21  # Δm²₃₁ = α*|Δm²₃₂| + Δm²₂₁
     _SinSqTheta12 = 0.5 * (1 - sqrt(1 - SinSq2Theta12))  # sin²θ₁₂
     _CosSqTheta12 = 1.0 - _SinSqTheta12  # cos²θ₁₂
-    _CosQuTheta13 = (1 - 0.5 * (1 - sqrt(1 - SinSq2Theta13))) ** 2  # cos⁴θ₁₃
+    _CosSqTheta13 = 1 - 0.5 * (1 - sqrt(1 - SinSq2Theta13))  # cos²θ₁₃
+    _CosQuTheta13 = _CosSqTheta13 * _CosSqTheta13  # cos⁴θ₁₃
 
-    sinCommonArg = oscprobArgConversion * L / 4.0
+    sinCommonArg = oscprobArgConversion * L * 0.25
     for i in range(len(out)):
         L4E = sinCommonArg / E[i]  # common factor
+        Sin32 = sin(_DeltaMSq32 * L4E)
+        Sin31 = sin(_DeltaMSq31 * L4E)
+        Sin21 = sin(DeltaMSq21 * L4E)
         out[i] = (
             1
             - SinSq2Theta13
-            * (_SinSqTheta12 * sin(_DeltaMSq32 * L4E) ** 2 + _CosSqTheta12 * sin(_DeltaMSq31 * L4E) ** 2)
-            - SinSq2Theta12 * _CosQuTheta13 * sin(DeltaMSq21 * L4E) ** 2
+            * (_SinSqTheta12 * Sin32 * Sin32 + _CosSqTheta12 * Sin31 * Sin31)
+            - SinSq2Theta12 * _CosQuTheta13 * Sin21 * Sin21
         )
 
 
@@ -161,7 +152,9 @@ class NueSurvivalProbability(Node):
         )
         # check_input_subtype(self, "nmo", integer)
         copy_from_input_to_output(self, "E", "result")
-        assign_output_axes_from_inputs(self, "E", "result", assign_meshes=True, overwrite_assigned=True)
+        assign_output_axes_from_inputs(
+            self, "E", "result", assign_meshes=True, overwrite_assigned=True
+        )
 
         self._conversionInput = self.inputs.get("oscprobArgConversion")
 
@@ -176,7 +169,9 @@ class NueSurvivalProbability(Node):
         nmo = self._nmo.data[0]
 
         oscprobArgConversion = (
-            _oscprobArgConversion if self._conversionInput is None else self._conversionInput.data[0]
+            _oscprobArgConversion
+            if self._conversionInput is None
+            else self._conversionInput.data[0]
         )
 
         _osc_prob(
@@ -217,7 +212,9 @@ class NueSurvivalProbability(Node):
 
             if oscprobArgConversion:
                 if oscprobArgConversion == True:
-                    inputs[nametuple + ("oscprobArgConversion",) + key] = oscprob("oscprobArgConversion")
+                    inputs[nametuple + ("oscprobArgConversion",) + key] = oscprob(
+                        "oscprobArgConversion"
+                    )
                 else:
                     oscprobArgConversion >> oscprob("oscprobArgConversion")
 
