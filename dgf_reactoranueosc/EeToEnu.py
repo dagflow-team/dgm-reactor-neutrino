@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from numba import njit
-from numpy import power, sqrt
+from numpy import sqrt
 
 from dagflow.inputhandler import MissingInputAddPair
 from dagflow.node import Node
@@ -25,7 +25,15 @@ if TYPE_CHECKING:
 class EeToEnu(Node):
     """Enu(Ee, cosθ)"""
 
-    __slots__ = ("_ee", "_ctheta", "_result", "_const_me", "_const_mp", "_const_mn", "_use_edep")
+    __slots__ = (
+        "_ee",
+        "_ctheta",
+        "_result",
+        "_const_me",
+        "_const_mp",
+        "_const_mn",
+        "_use_edep",
+    )
 
     _ee: Input
     _ctheta: Input
@@ -51,7 +59,9 @@ class EeToEnu(Node):
 
         self._use_edep = use_edep
 
-        self._ee = self._add_input(use_edep and "edep" or "ee", positional=True, keyword=True)
+        self._ee = self._add_input(
+            use_edep and "edep" or "ee", positional=True, keyword=True
+        )
         self._ctheta = self._add_input("costheta", positional=True, keyword=True)
         self._result = self._add_output("result", positional=True, keyword=True)
 
@@ -76,7 +86,9 @@ class EeToEnu(Node):
         check_inputs_equivalence(self, slice(0, 2))
         eename = "edep" if self._use_edep else "ee"
         copy_from_input_to_output(self, eename, "result", edges=False, meshes=False)
-        assign_output_axes_from_inputs(self, (eename, "costheta"), "result", assign_meshes=True)
+        assign_output_axes_from_inputs(
+            self, (eename, "costheta"), "result", assign_meshes=True
+        )
 
 
 @njit(cache=True)
@@ -89,9 +101,9 @@ def _enu(
     NeutronMass: float,
     use_edep: bool,
 ):
-    ElectronMass2 = power(ElectronMass, 2)
-    NeutronMass2 = power(NeutronMass, 2)
-    ProtonMass2 = power(ProtonMass, 2)
+    ElectronMass2 = ElectronMass * ElectronMass
+    NeutronMass2 = NeutronMass * NeutronMass
+    ProtonMass2 = ProtonMass * ProtonMass
 
     delta = 0.5 * (NeutronMass2 - ProtonMass2 - ElectronMass2) / ProtonMass
 

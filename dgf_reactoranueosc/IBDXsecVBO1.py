@@ -128,15 +128,15 @@ def _ibdxsecO1(
     const_f: float,
     const_f2: float,
 ):
-    ElectronMass2 = power(ElectronMass, 2)
-    NeutronMass2 = power(NeutronMass, 2)
+    ElectronMass2 = ElectronMass * ElectronMass
+    NeutronMass2 = NeutronMass * NeutronMass
     NucleonMass = 0.5 * (NeutronMass + ProtonMass)
     EnuThreshold = 0.5 * (
         NeutronMass2 / (ProtonMass - ElectronMass) - ProtonMass + ElectronMass
     )
 
     DeltaNP = NeutronMass - ProtonMass
-    const_y2 = 0.5 * (power(DeltaNP, 2) - ElectronMass2)
+    const_y2 = 0.5 * (DeltaNP * DeltaNP - ElectronMass2)
 
     const_gsq = const_g * const_g
     const_fsq = const_f * const_f

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from numba import njit
-from numpy import power, sqrt
+from numpy import sqrt
 
 from dagflow.inputhandler import MissingInputAddPair
 from dagflow.node import Node
@@ -90,7 +90,7 @@ def _jacobian_dEnu_dEe(
     ProtonMass: float,
     use_edep: bool,
 ):
-    ElectronMass2 = power(ElectronMass, 2)
+    ElectronMass2 = ElectronMass * ElectronMass
 
     for i, (Enu, Ee, ctheta) in enumerate(zip(EnuIn, EeIn, CosThetaIn)):
         if use_edep:
