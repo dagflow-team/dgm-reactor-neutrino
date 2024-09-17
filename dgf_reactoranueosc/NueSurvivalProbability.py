@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from numba import njit
-from numpy import pi, sin, sqrt
+from numpy import array, pi, sin, sqrt
 from scipy.constants import value
 
 from dagflow.node import Node
@@ -20,44 +20,47 @@ if TYPE_CHECKING:
     from numpy import double
     from numpy.typing import NDArray
 
-    from dagflow.input import Input
     from dagflow.node import Node
     from dagflow.output import Output
     from multikeydict.typing import KeyLike
 
-_oscprobArgConversion = pi * 2e-3 * value("electron volt-inverse meter relationship")
+_surprobArgConversion = pi * 2e-3 * value("electron volt-inverse meter relationship")
 
 
 @njit(cache=True)
-def _osc_prob(
+def _sur_prob(
     out: NDArray[double],
     E: NDArray[double],
-    L: float,
-    SinSq2Theta12: float,
-    SinSq2Theta13: float,
-    DeltaMSq21: float,
-    DeltaMSq32: float,
-    nmo: float,
-    oscprobArgConversion: float,
+    L: NDArray[double],
+    L_scale: float,
+    SinSq2Theta12: NDArray[double],
+    SinSq2Theta13: NDArray[double],
+    DeltaMSq21: NDArray[double],
+    DeltaMSq32: NDArray[double],
+    nmo: NDArray[double],
+    surprobArgConversion: NDArray[double],
 ) -> None:
-    _DeltaMSq32 = nmo * DeltaMSq32  # Δm²₃₂ = α*|Δm²₃₂|
-    _DeltaMSq31 = nmo * DeltaMSq32 + DeltaMSq21  # Δm²₃₁ = α*|Δm²₃₂| + Δm²₂₁
-    _SinSqTheta12 = 0.5 * (1 - sqrt(1 - SinSq2Theta12))  # sin²θ₁₂
+    _DeltaMSq21 = DeltaMSq21[0]
+    _DeltaMSq32 = nmo[0] * DeltaMSq32[0]  # Δm²₃₂ = α*|Δm²₃₂|
+    _DeltaMSq31 = nmo[0] * DeltaMSq32[0] + _DeltaMSq21  # Δm²₃₁ = α*|Δm²₃₂| + Δm²₂₁
+    _SinSq2Theta13 = SinSq2Theta13[0]
+    _SinSq2Theta12 = SinSq2Theta12[0]
+    _SinSqTheta12 = 0.5 * (1 - sqrt(1 - _SinSq2Theta12))  # sin²θ₁₂
     _CosSqTheta12 = 1.0 - _SinSqTheta12  # cos²θ₁₂
-    _CosSqTheta13 = 1 - 0.5 * (1 - sqrt(1 - SinSq2Theta13))  # cos²θ₁₃
+    _CosSqTheta13 = 1 - 0.5 * (1 - sqrt(1 - SinSq2Theta13[0]))  # cos²θ₁₃
     _CosQuTheta13 = _CosSqTheta13 * _CosSqTheta13  # cos⁴θ₁₃
 
-    sinCommonArg = oscprobArgConversion * L * 0.25
+    sinCommonArg = surprobArgConversion[0] * L[0] * 0.25 * L_scale
     for i in range(len(out)):
         L4E = sinCommonArg / E[i]  # common factor
         Sin32 = sin(_DeltaMSq32 * L4E)
         Sin31 = sin(_DeltaMSq31 * L4E)
-        Sin21 = sin(DeltaMSq21 * L4E)
+        Sin21 = sin(_DeltaMSq21 * L4E)
         out[i] = (
-            1
-            - SinSq2Theta13
+            rr := 1.0
+            - _SinSq2Theta13
             * (_SinSqTheta12 * Sin32 * Sin32 + _CosSqTheta12 * Sin31 * Sin31)
-            - SinSq2Theta12 * _CosQuTheta13 * Sin21 * Sin21
+            - _SinSq2Theta12 * _CosQuTheta13 * Sin21 * Sin21
         )
 
 
@@ -73,7 +76,7 @@ class NueSurvivalProbability(Node):
         `nmo`: α - the mass ordering constant
 
     optional inputs:
-        `oscprobArgConversion`: Convert Δm²[eV²]L[km]/E[MeV] to natural units.
+        `surprobArgConversion`: Convert Δm²[eV²]L[km]/E[MeV] to natural units.
         If the input is not given a default value will be used:
         `2*pi*1e-3*scipy.value('electron volt-inverse meter relationship')`
 
@@ -93,19 +96,19 @@ class NueSurvivalProbability(Node):
         "_DeltaMSq21",
         "_DeltaMSq32",
         "_nmo",
-        "_conversionInput",
+        "_surprob_arg_conversion_factor",
     )
 
     _baseline_scale: float
-    _E: Input
-    _L: Input
-    _nmo: Input
-    _DeltaMSq21: Input
-    _DeltaMSq32: Input
-    _SinSq2Theta12: Input
-    _SinSq2Theta13: Input
-    _result: Output
-    _conversionInput: Output | None
+    _E: NDArray
+    _L: NDArray
+    _nmo: NDArray
+    _DeltaMSq21: NDArray
+    _DeltaMSq32: NDArray
+    _SinSq2Theta12: NDArray
+    _SinSq2Theta13: NDArray
+    _surprob_arg_conversion_factor: NDArray
+    _result: NDArray
 
     def __init__(self, *args, distance_unit: Literal["km", "m"] = "km", **kwargs):
         super().__init__(
@@ -119,18 +122,17 @@ class NueSurvivalProbability(Node):
                 "DeltaMSq32",
                 "DeltaMSq21",
                 "nmo",
-                "oscprobArgConversion",
+                "surprobArgConversion",
             ),
         )
         self._labels.setdefault("mark", "P(ee)")
-        self._E, self._result = self._add_pair("E", "result")
-        self._L = self._add_input("L", positional=False)
-        self._SinSq2Theta12 = self._add_input("SinSq2Theta12", positional=False)
-        self._SinSq2Theta13 = self._add_input("SinSq2Theta13", positional=False)
-        self._DeltaMSq21 = self._add_input("DeltaMSq21", positional=False)
-        self._DeltaMSq32 = self._add_input("DeltaMSq32", positional=False)
-        self._nmo = self._add_input("nmo", positional=False)
-        self._conversionInput = None
+        self._add_pair("E", "result")
+        self._add_input("L", positional=False)
+        self._add_input("SinSq2Theta12", positional=False)
+        self._add_input("SinSq2Theta13", positional=False)
+        self._add_input("DeltaMSq21", positional=False)
+        self._add_input("DeltaMSq32", positional=False)
+        self._add_input("nmo", positional=False)
         try:
             self._baseline_scale = {"km": 1, "m": 1.0e-3}[distance_unit]
         except KeyError as e:
@@ -156,35 +158,40 @@ class NueSurvivalProbability(Node):
             self, "E", "result", assign_meshes=True, overwrite_assigned=True
         )
 
-        self._conversionInput = self.inputs.get("oscprobArgConversion")
-
     def _fcn(self):
-        out = self._result.data.ravel()
-        E = self._E.data.ravel()
-        L = self._L.data[0]
-        SinSq2Theta12 = self._SinSq2Theta12.data[0]
-        SinSq2Theta13 = self._SinSq2Theta13.data[0]
-        DeltaMSq21 = self._DeltaMSq21.data[0]
-        DeltaMSq32 = self._DeltaMSq32.data[0]
-        nmo = self._nmo.data[0]
+        for callback in self._input_nodes_callbacks:
+            callback()
 
-        oscprobArgConversion = (
-            _oscprobArgConversion
-            if self._conversionInput is None
-            else self._conversionInput.data[0]
+        _sur_prob(
+            self._result,
+            self._E,
+            self._L,
+            self._baseline_scale,
+            self._SinSq2Theta12,
+            self._SinSq2Theta13,
+            self._DeltaMSq21,
+            self._DeltaMSq32,
+            self._nmo,
+            self._surprob_arg_conversion_factor,
         )
 
-        _osc_prob(
-            out,
-            E,
-            L * self._baseline_scale,
-            SinSq2Theta12,
-            SinSq2Theta13,
-            DeltaMSq21,
-            DeltaMSq32,
-            nmo,
-            oscprobArgConversion,
-        )
+    def _post_allocate(self):
+        super()._post_allocate()
+
+        self._result = self.outputs["result"].data_unsafe.ravel()
+
+        self._E = self.inputs["E"].data_unsafe.ravel()
+        self._L = self.inputs["L"].data_unsafe
+        self._SinSq2Theta12 = self.inputs["SinSq2Theta12"].data_unsafe
+        self._SinSq2Theta13 = self.inputs["SinSq2Theta13"].data_unsafe
+        self._DeltaMSq21 = self.inputs["DeltaMSq21"].data_unsafe
+        self._DeltaMSq32 = self.inputs["DeltaMSq32"].data_unsafe
+        self._nmo = self.inputs["nmo"].data_unsafe
+
+        if conversion_input := self.inputs.get("surprobArgConversion"):
+            self._surprob_arg_conversion_factor = conversion_input.data_unsafe
+        else:
+            self._surprob_arg_conversion_factor = array([_surprobArgConversion])
 
     @classmethod
     def replicate(
@@ -192,7 +199,7 @@ class NueSurvivalProbability(Node):
         *args,
         name: str,
         replicate_outputs: tuple[KeyLike, ...] = ((),),
-        oscprobArgConversion: Output | Literal[True] | None = None,
+        surprobArgConversion: Output | Literal[True] | None = None,
         **kwargs,
     ) -> tuple[Node | None, NodeStorage]:
         storage = NodeStorage()
@@ -204,19 +211,19 @@ class NueSurvivalProbability(Node):
         for key in replicate_outputs:
             ckey = nametuple + (key,) if isinstance(key, str) else nametuple + key
             cname = ".".join(ckey)
-            oscprob = cls(cname, *args, **kwargs)
-            nodes[ckey] = oscprob
-            inputs[nametuple + ("enu",) + key] = oscprob.inputs[0]
-            inputs[nametuple + ("L",) + key] = oscprob.inputs["L"]
-            outputs[ckey] = oscprob.outputs[0]
+            surprob = cls(cname, *args, **kwargs)
+            nodes[ckey] = surprob
+            inputs[nametuple + ("enu",) + key] = surprob.inputs[0]
+            inputs[nametuple + ("L",) + key] = surprob.inputs["L"]
+            outputs[ckey] = surprob.outputs[0]
 
-            if oscprobArgConversion:
-                if oscprobArgConversion == True:
-                    inputs[nametuple + ("oscprobArgConversion",) + key] = oscprob(
-                        "oscprobArgConversion"
+            if surprobArgConversion:
+                if surprobArgConversion == True:
+                    inputs[nametuple + ("surprobArgConversion",) + key] = surprob(
+                        "surprobArgConversion"
                     )
                 else:
-                    oscprobArgConversion >> oscprob("oscprobArgConversion")
+                    surprobArgConversion >> surprob("surprobArgConversion")
 
         NodeStorage.update_current(storage, strict=True)
 
