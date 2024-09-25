@@ -57,7 +57,7 @@ def _sur_prob(
         Sin31 = sin(_DeltaMSq31 * L4E)
         Sin21 = sin(_DeltaMSq21 * L4E)
         out[i] = (
-            rr := 1.0
+            1.0
             - _SinSq2Theta13
             * (_SinSqTheta12 * Sin32 * Sin32 + _CosSqTheta12 * Sin31 * Sin31)
             - _SinSq2Theta12 * _CosQuTheta13 * Sin21 * Sin21
