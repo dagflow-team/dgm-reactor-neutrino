@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from dagflow.metanode import MetaNode
+from multikeydict.typing import KeyLike, strkey
 
 from .EeToEnu import EeToEnu
 from .IBDXsecVBO1 import IBDXsecVBO1
@@ -29,16 +30,27 @@ class IBDXsecVBO1Group(MetaNode):
 
         ibdxsec = IBDXsecVBO1(name_ibd, label=labels.get("xsec", {}))
         eetoenu = EeToEnu(name_enu, use_edep=use_edep, label=labels.get("enu", {}))
-        jacobian = Jacobian_dEnu_dEe(name_jacobian, use_edep=use_edep, label=labels.get("jacobian", {}))
+        jacobian = Jacobian_dEnu_dEe(
+            name_jacobian, use_edep=use_edep, label=labels.get("jacobian", {})
+        )
 
         eetoenu.outputs["result"] >> (jacobian.inputs["enu"], ibdxsec.inputs["enu"])
 
         self._eename = "edep" if use_edep else "ee"
         inputs_common = ["ElectronMass", "ProtonMass", "NeutronMass"]
-        inputs_ibd = inputs_common + ["NeutronLifeTime", "PhaseSpaceFactor", "g", "f", "f2"]
+        inputs_ibd = inputs_common + [
+            "NeutronLifeTime",
+            "PhaseSpaceFactor",
+            "g",
+            "f",
+            "f2",
+        ]
         merge_inputs = [self._eename, "costheta"] + inputs_common
         self._add_node(
-            ibdxsec, kw_inputs=["costheta"] + inputs_ibd, merge_inputs=merge_inputs, outputs_pos=True
+            ibdxsec,
+            kw_inputs=["costheta"] + inputs_ibd,
+            merge_inputs=merge_inputs,
+            outputs_pos=True,
         )
         self._add_node(
             eetoenu,
@@ -57,13 +69,19 @@ class IBDXsecVBO1Group(MetaNode):
     @classmethod
     def make_stored(
         cls,
-        name_ibd: str = "ibd.crosssection",
-        name_enu: str = "ibd.enu",
-        name_jacobian: str = "ibd.jacobian",
+        name_ibd: str = "crosssection",
+        name_enu: str = "enu",
+        name_jacobian: str = "jacobian",
+        path: KeyLike = "ibd",
         *args,
         **kwargs,
     ) -> tuple[IBDXsecVBO1Group, NodeStorage]:
         from dagflow.storage import NodeStorage
+
+        path = strkey(path)
+        name_ibd = strkey((path, name_ibd))
+        name_enu = strkey((path, name_enu))
+        name_jacobian = strkey((path, name_jacobian))
 
         storage = NodeStorage(default_containers=True)
         nodes = storage.child("nodes")
