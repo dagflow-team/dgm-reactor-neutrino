@@ -10,6 +10,8 @@ from .IBDXsecVBO1 import IBDXsecVBO1
 from .Jacobian_dEnu_dEe import Jacobian_dEnu_dEe
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from dagflow.storage import NodeStorage
 
 
@@ -67,11 +69,13 @@ class IBDXsecVBO1Group(MetaNode):
         self.inputs.make_positionals(self._eename, "costheta")
 
     @classmethod
-    def make_stored(
+    def replicate(
         cls,
-        name_ibd: str = "crosssection",
-        name_enu: str = "enu",
-        name_jacobian: str = "jacobian",
+        names: Mapping[str, str] = {
+            "ibd": "crosssection",
+            "enu": "enu",
+            "jacobian": "jacobian",
+        },
         path: KeyLike = "ibd",
         *args,
         **kwargs,
@@ -79,9 +83,9 @@ class IBDXsecVBO1Group(MetaNode):
         from dagflow.storage import NodeStorage
 
         path = strkey(path)
-        name_ibd = strkey((path, name_ibd))
-        name_enu = strkey((path, name_enu))
-        name_jacobian = strkey((path, name_jacobian))
+        name_ibd = strkey((path, names.get("ibd", "crosssection")))
+        name_enu = strkey((path, names.get("enu", "enu")))
+        name_jacobian = strkey((path, names.get("jacobian", "jacobian")))
 
         storage = NodeStorage(default_containers=True)
         nodes = storage.child("nodes")
