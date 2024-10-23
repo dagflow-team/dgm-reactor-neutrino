@@ -71,13 +71,14 @@ class IBDXsecVBO1Group(MetaNode):
     @classmethod
     def replicate(
         cls,
+        *args,
         names: Mapping[str, str] = {
             "ibd": "crosssection",
             "enu": "enu",
             "jacobian": "jacobian",
         },
         path: KeyLike = "ibd",
-        *args,
+        verbose: bool = False,
         **kwargs,
     ) -> tuple[IBDXsecVBO1Group, NodeStorage]:
         from dagflow.storage import NodeStorage
@@ -101,6 +102,6 @@ class IBDXsecVBO1Group(MetaNode):
         outputs[name_enu] = ibd.outputs["enu"]
         outputs[name_jacobian] = ibd.outputs["jacobian"]
 
-        NodeStorage.update_current(storage, strict=True)
+        NodeStorage.update_current(storage, strict=True, verbose=verbose)
 
         return ibd, storage
