@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from numba import njit
 from numpy import sqrt
@@ -25,10 +25,20 @@ if TYPE_CHECKING:
 class Jacobian_dEnu_dEe(Node):
     """Enu(Ee, cosθ)"""
 
-    __slots__ = ("_enu", "_ee", "_ctheta", "_result", "_const_me", "_const_mp", "_const_mn", "_use_edep")
+    __slots__ = (
+        "_enu",
+        "_e_input",
+        "_ctheta",
+        "_result",
+        "_const_me",
+        "_const_mp",
+        "_const_mn",
+        "_input_energy_type",
+        "_use_edep",
+    )
 
     _enu: Input
-    _ee: Input
+    _e_input: Input
     _ctheta: Input
     _result: Output
 
@@ -36,24 +46,42 @@ class Jacobian_dEnu_dEe(Node):
     _const_mp: Input
     _const_mn: Input
 
+    _input_energy_type: Literal["ee", "edep"]
     _use_edep: bool
 
-    def __init__(self, name, *args, use_edep: bool = False, **kwargs):
+    def __init__(
+        self, name, *args, input_energy: Literal["ee", "edep"] = "ee", **kwargs
+    ):
         kwargs.setdefault("missing_input_handler", MissingInputAddPair())
         super().__init__(name, *args, **kwargs)
-        self.labels.setdefaults(
-            {
-                "text": r"Energy conversion Jacobian dEν/dEdep",
-                "plottitle": r"Energy conversion Jacobian $dE_{\nu}/dE_{\rm dep}$",
-                "latex": r"$dE_{\nu}/dE_{\rm dep}$",
-                "axis": r"$dE_{\nu}/dE_{\rm dep}$",
-            }
-        )
 
-        self._use_edep = use_edep
+        self._input_energy_type = input_energy
+        match input_energy:
+            case "ee":
+                self._use_edep = False
+                self.labels.setdefaults(
+                    {
+                        "text": r"Energy conversion Jacobian dEν/dEe",
+                        "plottitle": r"Energy conversion Jacobian $dE_{\nu}/dE_{e}$",
+                        "latex": r"$dE_{\nu}/dE_{e}$",
+                        "axis": r"$dE_{\nu}/dE_{e}$",
+                    }
+                )
+            case "edep":
+                self._use_edep = True
+                self.labels.setdefaults(
+                    {
+                        "text": r"Energy conversion Jacobian dEν/dEdep",
+                        "plottitle": r"Energy conversion Jacobian $dE_{\nu}/dE_{\rm dep}$",
+                        "latex": r"$dE_{\nu}/dE_{\rm dep}$",
+                        "axis": r"$dE_{\nu}/dE_{\rm dep}$",
+                    }
+                )
+            case _:
+                raise ValueError(f"Invalid `input_energy` {input_energy}")
 
         self._enu = self._add_input("enu", positional=True, keyword=True)
-        self._ee = self._add_input(use_edep and "edep" or "ee", positional=True, keyword=True)
+        self._e_input = self._add_input(input_energy, positional=True, keyword=True)
         self._ctheta = self._add_input("costheta", positional=True, keyword=True)
         self._result = self._add_output("result", positional=True, keyword=True)
 
@@ -63,7 +91,7 @@ class Jacobian_dEnu_dEe(Node):
     def _function(self):
         _jacobian_dEnu_dEe(
             self._enu.data.ravel(),
-            self._ee.data.ravel(),
+            self._e_input.data.ravel(),
             self._ctheta.data.ravel(),
             self._result.data.ravel(),
             self._const_me.data[0],
@@ -72,12 +100,15 @@ class Jacobian_dEnu_dEe(Node):
         )
 
     def _typefunc(self) -> None:
-        """A output takes this function to determine the dtype and shape"""
+        """A output takes this function to determine the dtype and shape."""
         check_input_dimension(self, slice(0, 3), 2)
         check_inputs_equivalence(self, slice(0, 3))
-        eename = "edep" if self._use_edep else "ee"
-        copy_from_input_to_output(self, eename, "result", edges=False, meshes=False)
-        assign_output_axes_from_inputs(self, (eename, "costheta"), "result", assign_meshes=True)
+        copy_from_input_to_output(
+            self, self._input_energy_type, "result", edges=False, meshes=False
+        )
+        assign_output_axes_from_inputs(
+            self, (self._input_energy_type, "costheta"), "result", assign_meshes=True
+        )
 
 
 @njit(cache=True)

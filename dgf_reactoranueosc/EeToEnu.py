@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from numba import njit
 from numpy import sqrt
@@ -26,16 +26,17 @@ class EeToEnu(Node):
     """Enu(Ee, cosθ)"""
 
     __slots__ = (
-        "_ee",
+        "_e_input",
         "_ctheta",
         "_result",
         "_const_me",
         "_const_mp",
         "_const_mn",
+        "_input_energy_type",
         "_use_edep",
     )
 
-    _ee: Input
+    _e_input: Input
     _ctheta: Input
     _result: Output
 
@@ -43,9 +44,12 @@ class EeToEnu(Node):
     _const_mp: Input
     _const_mn: Input
 
+    _input_energy_type: Literal["ee", "edep"]
     _use_edep: bool
 
-    def __init__(self, name, *args, use_edep: bool = False, **kwargs):
+    def __init__(
+        self, name, *args, input_energy: Literal["ee", "edep"] = "ee", **kwargs
+    ):
         kwargs.setdefault("missing_input_handler", MissingInputAddPair())
         super().__init__(name, *args, **kwargs)
         self.labels.setdefaults(
@@ -57,11 +61,16 @@ class EeToEnu(Node):
             }
         )
 
-        self._use_edep = use_edep
+        self._input_energy_type = input_energy
+        match input_energy:
+            case "ee":
+                self._use_edep = False
+            case "edep":
+                self._use_edep = True
+            case _:
+                raise ValueError(f"Invalid `input_energy` {input_energy}")
 
-        self._ee = self._add_input(
-            use_edep and "edep" or "ee", positional=True, keyword=True
-        )
+        self._e_input = self._add_input(input_energy, positional=True, keyword=True)
         self._ctheta = self._add_input("costheta", positional=True, keyword=True)
         self._result = self._add_output("result", positional=True, keyword=True)
 
@@ -71,7 +80,7 @@ class EeToEnu(Node):
 
     def _function(self):
         _enu(
-            self._ee.data.ravel(),
+            self._e_input.data.ravel(),
             self._ctheta.data.ravel(),
             self._result.data.ravel(),
             self._const_me.data[0],
@@ -81,13 +90,14 @@ class EeToEnu(Node):
         )
 
     def _typefunc(self) -> None:
-        """A output takes this function to determine the dtype and shape"""
+        """A output takes this function to determine the dtype and shape."""
         check_input_dimension(self, slice(0, 2), 2)
         check_inputs_equivalence(self, slice(0, 2))
-        eename = "edep" if self._use_edep else "ee"
-        copy_from_input_to_output(self, eename, "result", edges=False, meshes=False)
+        copy_from_input_to_output(
+            self, self._input_energy_type, "result", edges=False, meshes=False
+        )
         assign_output_axes_from_inputs(
-            self, (eename, "costheta"), "result", assign_meshes=True
+            self, (self._input_energy_type, "costheta"), "result", assign_meshes=True
         )
 
 

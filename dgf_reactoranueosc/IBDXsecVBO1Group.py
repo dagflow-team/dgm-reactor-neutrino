@@ -16,8 +16,8 @@ if TYPE_CHECKING:
 
 
 class IBDXsecVBO1Group(MetaNode):
-    __slots__ = ("_eename",)
-    _eename: str
+    __slots__ = ("_input_energy_type",)
+    _input_energy_type: str
 
     def __init__(
         self,
@@ -25,20 +25,20 @@ class IBDXsecVBO1Group(MetaNode):
         name_enu: str = "enu",
         name_jacobian: str = "jacobian",
         *,
-        use_edep: bool = False,
+        input_energy: Literal["ee", "edep"] = "ee",
         labels: dict = {},
     ):
         super().__init__(strategy="Disable")
 
         ibdxsec = IBDXsecVBO1(name_ibd, label=labels.get("xsec", {}))
-        eetoenu = EeToEnu(name_enu, use_edep=use_edep, label=labels.get("enu", {}))
+        eetoenu = EeToEnu(name_enu, input_energy=input_energy, label=labels.get("enu", {}))
         jacobian = Jacobian_dEnu_dEe(
-            name_jacobian, use_edep=use_edep, label=labels.get("jacobian", {})
+            name_jacobian, input_energy=input_energy, label=labels.get("jacobian", {})
         )
 
         eetoenu.outputs["result"] >> (jacobian.inputs["enu"], ibdxsec.inputs["enu"])
 
-        self._eename = "edep" if use_edep else "ee"
+        self._input_energy_type = input_energy
         inputs_common = ["ElectronMass", "ProtonMass", "NeutronMass"]
         inputs_ibd = inputs_common + [
             "NeutronLifeTime",
@@ -47,7 +47,7 @@ class IBDXsecVBO1Group(MetaNode):
             "f",
             "f2",
         ]
-        merge_inputs = [self._eename, "costheta"] + inputs_common
+        merge_inputs = [self._input_energy_type, "costheta"] + inputs_common
         self._add_node(
             ibdxsec,
             kw_inputs=["costheta"] + inputs_ibd,
@@ -56,17 +56,17 @@ class IBDXsecVBO1Group(MetaNode):
         )
         self._add_node(
             eetoenu,
-            kw_inputs=[self._eename, "costheta"] + inputs_common,
+            kw_inputs=[self._input_energy_type, "costheta"] + inputs_common,
             merge_inputs=merge_inputs,
             kw_outputs={"result": "enu"},
         )
         self._add_node(
             jacobian,
-            kw_inputs=["enu", self._eename, "costheta"] + inputs_common[:-1],
+            kw_inputs=["enu", self._input_energy_type, "costheta"] + inputs_common[:-1],
             merge_inputs=merge_inputs[:-1],
             kw_outputs={"result": "jacobian"},
         )
-        self.inputs.make_positionals(self._eename, "costheta")
+        self.inputs.make_positionals(self._input_energy_type, "costheta")
 
     @classmethod
     def replicate(
@@ -96,7 +96,7 @@ class IBDXsecVBO1Group(MetaNode):
         ibd = cls(name_ibd, name_enu, name_jacobian, *args, **kwargs)
 
         nodes[name_ibd] = ibd
-        inputs[name_ibd, ibd._eename] = ibd.inputs[ibd._eename]
+        inputs[name_ibd, ibd._input_energy_type] = ibd.inputs[ibd._input_energy_type]
         inputs[name_ibd, "costheta"] = ibd.inputs["costheta"]
         outputs[name_ibd] = ibd.outputs["result"]
         outputs[name_enu] = ibd.outputs["enu"]
