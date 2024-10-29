@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING
 from numba import njit
 from numpy import sqrt
 
-from dagflow.inputhandler import MissingInputAddPair
-from dagflow.node import Node
-from dagflow.typefunctions import (
+from dagflow.core.input_handler import MissingInputAddPair
+from dagflow.core.node import Node
+from dagflow.core.type_functions import (
     assign_output_axes_from_inputs,
     check_input_dimension,
     check_inputs_equivalence,
@@ -18,8 +18,8 @@ if TYPE_CHECKING:
     from numpy import double
     from numpy.typing import NDArray
 
-    from dagflow.input import Input
-    from dagflow.output import Output
+    from dagflow.core.input import Input
+    from dagflow.core.output import Output
 
 
 class EeToEnu(Node):
@@ -69,7 +69,7 @@ class EeToEnu(Node):
         self._const_mp = self._add_input("ProtonMass", positional=False, keyword=True)
         self._const_mn = self._add_input("NeutronMass", positional=False, keyword=True)
 
-    def _fcn(self):
+    def _function(self):
         _enu(
             self._ee.data.ravel(),
             self._ctheta.data.ravel(),

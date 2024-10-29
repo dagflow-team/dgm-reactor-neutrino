@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from dagflow.metanode import MetaNode
+from dagflow.core.meta_node import MetaNode
 from multikeydict.typing import KeyLike, strkey
 
 from .EeToEnu import EeToEnu
@@ -12,7 +12,7 @@ from .Jacobian_dEnu_dEe import Jacobian_dEnu_dEe
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from dagflow.storage import NodeStorage
+    from dagflow.core.storage import NodeStorage
 
 
 class IBDXsecVBO1Group(MetaNode):

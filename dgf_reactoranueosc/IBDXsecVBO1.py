@@ -6,9 +6,9 @@ from numba import njit
 from numpy import pi, power, sqrt
 from scipy.constants import value as constant
 
-from dagflow.inputhandler import MissingInputAddPair
-from dagflow.node import Node
-from dagflow.typefunctions import (
+from dagflow.core.input_handler import MissingInputAddPair
+from dagflow.core.node import Node
+from dagflow.core.type_functions import (
     assign_output_axes_from_inputs,
     check_input_dimension,
     check_input_dtype,
@@ -20,8 +20,8 @@ if TYPE_CHECKING:
     from numpy import double
     from numpy.typing import NDArray
 
-    from dagflow.input import Input
-    from dagflow.output import Output
+    from dagflow.core.input import Input
+    from dagflow.core.output import Output
 
 
 class IBDXsecVBO1(Node):
@@ -83,7 +83,7 @@ class IBDXsecVBO1(Node):
         self._const_f = self._add_input("f", positional=False, keyword=True)
         self._const_f2 = self._add_input("f2", positional=False, keyword=True)
 
-    def _fcn(self):
+    def _function(self):
         _ibdxsecO1(
             self._enu.data.ravel(),
             self._ctheta.data.ravel(),

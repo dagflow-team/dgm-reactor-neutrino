@@ -6,9 +6,9 @@ from numba import njit
 from numpy import array, pi, sin, sqrt
 from scipy.constants import value
 
-from dagflow.node import Node
-from dagflow.storage import NodeStorage
-from dagflow.typefunctions import (
+from dagflow.core.node import Node
+from dagflow.core.storage import NodeStorage
+from dagflow.core.type_functions import (
     assign_output_axes_from_inputs,
     check_input_shape,
     copy_from_input_to_output,
@@ -20,8 +20,8 @@ if TYPE_CHECKING:
     from numpy import double
     from numpy.typing import NDArray
 
-    from dagflow.node import Node
-    from dagflow.output import Output
+    from dagflow.core.node import Node
+    from dagflow.core.output import Output
     from multikeydict.typing import KeyLike
 
 _surprobArgConversion = pi * 2e-3 * value("electron volt-inverse meter relationship")
@@ -158,7 +158,7 @@ class NueSurvivalProbability(Node):
             self, "E", "result", assign_meshes=True, overwrite_assigned=True
         )
 
-    def _fcn(self):
+    def _function(self):
         for callback in self._input_nodes_callbacks:
             callback()
 

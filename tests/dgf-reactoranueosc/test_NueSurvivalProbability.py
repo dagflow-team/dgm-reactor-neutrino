@@ -4,12 +4,11 @@ from matplotlib.pyplot import subplots
 from numpy import allclose, arcsin, cos, finfo, geomspace, sin, sqrt
 from pytest import mark
 
-from dagflow.graph import Graph
-from dagflow.graphviz import savegraph
-from dagflow.lib.Array import Array
-from dagflow.plot import plot_auto
-from dgf_reactoranueosc.NueSurvivalProbability import (NueSurvivalProbability,
-                                                       _surprobArgConversion)
+from dagflow.core.graph import Graph
+from dagflow.lib.common import Array
+from dagflow.plot.graphviz import savegraph
+from dagflow.plot.plot import plot_auto
+from dgf_reactoranueosc.NueSurvivalProbability import NueSurvivalProbability, _surprobArgConversion
 
 
 @mark.parametrize("nmo", (1, -1))  # mass ordering
@@ -18,9 +17,7 @@ from dgf_reactoranueosc.NueSurvivalProbability import (NueSurvivalProbability,
     "conversionFactor",
     (None, _surprobArgConversion, 0.9 * _surprobArgConversion),
 )
-def test_NueSurvivalProbability_01(
-    debug_graph, testname, L, nmo, conversionFactor
-):
+def test_NueSurvivalProbability_01(debug_graph, testname, L, nmo, conversionFactor):
     E = geomspace(1, 100, 1000)  # MeV
     DeltaMSq21 = 7.39 * 1e-5  # eV^2
     DeltaMSq32 = 2.45 * 1e-3  # eV^2
@@ -29,15 +26,15 @@ def test_NueSurvivalProbability_01(
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
         surprob = NueSurvivalProbability("P(ee)")
-        (in_E:=Array("E", E)) >> surprob("E")
-        (in_L:=Array("L", [L])) >> surprob("L")
-        (in_nmo:=Array("nmo", [nmo])) >> surprob("nmo")
-        (in_Dm21:=Array("DeltaMSq21", [DeltaMSq21])) >> surprob("DeltaMSq21")
-        (in_Dm32:=Array("DeltaMSq32", [DeltaMSq32])) >> surprob("DeltaMSq32")
-        (in_t12:=Array("SinSq2Theta12", [SinSq2Theta12])) >> surprob("SinSq2Theta12")
-        (in_t13:=Array("SinSq2Theta13", [SinSq2Theta13])) >> surprob("SinSq2Theta13")
+        (in_E := Array("E", E)) >> surprob("E")
+        (in_L := Array("L", [L])) >> surprob("L")
+        (in_nmo := Array("nmo", [nmo])) >> surprob("nmo")
+        (in_Dm21 := Array("DeltaMSq21", [DeltaMSq21])) >> surprob("DeltaMSq21")
+        (in_Dm32 := Array("DeltaMSq32", [DeltaMSq32])) >> surprob("DeltaMSq32")
+        (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12])) >> surprob("SinSq2Theta12")
+        (in_t13 := Array("SinSq2Theta13", [SinSq2Theta13])) >> surprob("SinSq2Theta13")
         if conversionFactor is not None:
-            (in_conversion:=Array("surprobArgConversion", [conversionFactor])) >> surprob(
+            (in_conversion := Array("surprobArgConversion", [conversionFactor])) >> surprob(
                 "surprobArgConversion"
             )
         else:
@@ -49,18 +46,15 @@ def test_NueSurvivalProbability_01(
         tmp = L * conversionFactor / 4.0 / E
         _DeltaMSq32 = nmo * DeltaMSq32  # Δm²₃₂ = α*|Δm²₃₂|
         _DeltaMSq31 = nmo * DeltaMSq32 + DeltaMSq21  # Δm²₃₁ = α*|Δm²₃₂| + Δm²₂₁
-        theta12 = 0.5*arcsin(sqrt(SinSq2Theta12))
-        theta13 = 0.5*arcsin(sqrt(SinSq2Theta13))
-        _SinSqTheta12 = sin(theta12)**2  # sin²θ₁₂
-        _CosSqTheta12 = cos(theta12)**2  # cos²θ₁₂
-        _CosQuTheta13 = (cos(theta13)**2)**2 # cos^4 θ₁₃
+        theta12 = 0.5 * arcsin(sqrt(SinSq2Theta12))
+        theta13 = 0.5 * arcsin(sqrt(SinSq2Theta13))
+        _SinSqTheta12 = sin(theta12) ** 2  # sin²θ₁₂
+        _CosSqTheta12 = cos(theta12) ** 2  # cos²θ₁₂
+        _CosQuTheta13 = (cos(theta13) ** 2) ** 2  # cos^4 θ₁₃
         res = (
             1
             - SinSq2Theta13
-            * (
-                _SinSqTheta12 * sin(_DeltaMSq32 * tmp) ** 2
-                + _CosSqTheta12 * sin(_DeltaMSq31 * tmp) ** 2
-            )
+            * (_SinSqTheta12 * sin(_DeltaMSq32 * tmp) ** 2 + _CosSqTheta12 * sin(_DeltaMSq31 * tmp) ** 2)
             - SinSq2Theta12 * _CosQuTheta13 * sin(DeltaMSq21 * tmp) ** 2
         )
         return res

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from numba import njit
 from numpy import multiply, pi
 
-from dagflow.lib.OneToOneNode import OneToOneNode
+from dagflow.lib.abstract import OneToOneNode
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -46,11 +46,11 @@ class InverseSquareLaw(OneToOneNode):
         self._labels.setdefault("mark", "1/(4πL²)")
         self._scale = _scales[scale]
 
-        self._functions.update({"normal": self._fcn_normal, "scaled": self._fcn_scaled})
+        self._functions_dict.update({"normal": self._fcn_normal, "scaled": self._fcn_scaled})
         if scale is None or self._scale == 1.0:
-            self.fcn = self._fcn_normal
+            self.function = self._fcn_normal
         else:
-            self.fcn = self._fcn_scaled
+            self.function = self._fcn_scaled
 
     def _fcn_normal(self):
         for inp, out in zip(self.inputs.iter_data(), self.outputs.iter_data()):

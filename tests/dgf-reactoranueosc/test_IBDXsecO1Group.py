@@ -1,14 +1,14 @@
 #!/usr/bin/env python
-from dagflow.graph import Graph
-from dagflow.graphviz import savegraph
-from dagflow.lib.Array import Array
+from dagflow.core.graph import Graph
+from dagflow.plot.graphviz import savegraph
+from dagflow.lib.common import Array
 from dagflow.bundles.load_parameters import load_parameters
 from numpy import linspace, meshgrid, meshgrid
 
 from dgf_reactoranueosc.IBDXsecVBO1Group import IBDXsecVBO1Group
-from dagflow.plot import plot_auto
+from dagflow.plot.plot import plot_auto
 
-from matplotlib.pyplot import close, subplots
+from matplotlib.pyplot import subplots
 
 def test_IBDXsecVBO1Group(debug_graph, testname):
     data = {

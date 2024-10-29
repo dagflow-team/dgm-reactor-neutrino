@@ -1,16 +1,16 @@
 #!/usr/bin/env python
-from dagflow.graph import Graph
-from dagflow.graphviz import savegraph
-from dagflow.lib.Array import Array
+from dagflow.core.graph import Graph
+from dagflow.plot.graphviz import savegraph
+from dagflow.lib.common import Array
 from dagflow.bundles.load_parameters import load_parameters
 from numpy import linspace, meshgrid, meshgrid
 
 from dgf_reactoranueosc.IBDXsecVBO1 import IBDXsecVBO1
 from dgf_reactoranueosc.EeToEnu import EeToEnu
 from dgf_reactoranueosc.Jacobian_dEnu_dEe import Jacobian_dEnu_dEe
-from dagflow.plot import plot_auto
+from dagflow.plot.plot import plot_auto
 
-from matplotlib.pyplot import close, subplots
+from matplotlib.pyplot import subplots
 
 def test_IBDXsecVBO1(debug_graph, testname):
     data = {
