@@ -12,7 +12,7 @@ from .Jacobian_dEnu_dEe import Jacobian_dEnu_dEe
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from dagflow.core.storage import NodeStorage
+    from dagflow.core import NodeStorage
 
 
 class IBDXsecVBO1Group(MetaNode):
@@ -81,7 +81,7 @@ class IBDXsecVBO1Group(MetaNode):
         verbose: bool = False,
         **kwargs,
     ) -> tuple[IBDXsecVBO1Group, NodeStorage]:
-        from dagflow.storage import NodeStorage
+        from dagflow.core import NodeStorage
 
         path = strkey(path)
         name_ibd = strkey((path, names.get("ibd", "crosssection")))
