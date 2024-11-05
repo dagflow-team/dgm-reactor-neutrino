@@ -200,6 +200,7 @@ class NueSurvivalProbability(Node):
         name: str,
         replicate_outputs: tuple[KeyLike, ...] = ((),),
         surprobArgConversion: Output | Literal[True] | None = None,
+        verbose: bool = False,
         **kwargs,
     ) -> tuple[Node | None, NodeStorage]:
         storage = NodeStorage()
@@ -225,6 +226,6 @@ class NueSurvivalProbability(Node):
                 else:
                     surprobArgConversion >> surprob("surprobArgConversion")
 
-        NodeStorage.update_current(storage, strict=True)
+        NodeStorage.update_current(storage, strict=True, verbose=verbose)
 
         return None, storage
