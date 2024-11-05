@@ -11,6 +11,7 @@ from .Jacobian_dEnu_dEe import Jacobian_dEnu_dEe
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+    from typing import Literal
 
     from dagflow.core import NodeStorage
 
@@ -31,7 +32,9 @@ class IBDXsecVBO1Group(MetaNode):
         super().__init__(strategy="Disable")
 
         ibdxsec = IBDXsecVBO1(name_ibd, label=labels.get("xsec", {}))
-        eetoenu = EeToEnu(name_enu, input_energy=input_energy, label=labels.get("enu", {}))
+        eetoenu = EeToEnu(
+            name_enu, input_energy=input_energy, label=labels.get("enu", {})
+        )
         jacobian = Jacobian_dEnu_dEe(
             name_jacobian, input_energy=input_energy, label=labels.get("jacobian", {})
         )
