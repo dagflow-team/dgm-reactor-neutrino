@@ -49,9 +49,7 @@ class Jacobian_dEnu_dEe(Node):
     _input_energy_type: Literal["ee", "edep"]
     _use_edep: bool
 
-    def __init__(
-        self, name, *args, input_energy: Literal["ee", "edep"] = "ee", **kwargs
-    ):
+    def __init__(self, name, *args, input_energy: Literal["ee", "edep"] = "ee", **kwargs):
         kwargs.setdefault("missing_input_handler", MissingInputAddPair())
         super().__init__(name, *args, **kwargs)
 
@@ -103,11 +101,13 @@ class Jacobian_dEnu_dEe(Node):
         """A output takes this function to determine the dtype and shape."""
         check_dimension_of_inputs(self, slice(0, 3), 2)
         check_inputs_equivalence(self, slice(0, 3))
-        copy_from_inputs_to_outputs(
-            self, self._input_energy_type, "result", edges=False, meshes=False
-        )
+        copy_from_inputs_to_outputs(self, self._input_energy_type, "result", edges=False, meshes=False)
         assign_axes_from_inputs_to_outputs(
-            self, (self._input_energy_type, "costheta"), "result", assign_meshes=True
+            self,
+            (self._input_energy_type, "costheta"),
+            "result",
+            assign_meshes=True,
+            merge_input_axes=True,
         )
 
 
