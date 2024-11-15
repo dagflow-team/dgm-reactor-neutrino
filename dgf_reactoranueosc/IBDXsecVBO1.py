@@ -9,11 +9,11 @@ from scipy.constants import value as constant
 from dagflow.core.input_handler import MissingInputAddPair
 from dagflow.core.node import Node
 from dagflow.core.type_functions import (
-    assign_output_axes_from_inputs,
-    check_input_dimension,
-    check_input_dtype,
+    assign_axes_from_inputs_to_outputs,
+    check_dimension_of_inputs,
+    check_dtype_of_inputs,
     check_inputs_equivalence,
-    copy_from_input_to_output,
+    copy_from_inputs_to_outputs,
 )
 
 if TYPE_CHECKING:
@@ -100,12 +100,12 @@ class IBDXsecVBO1(Node):
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
-        check_input_dtype(self, slice(None), "d")
-        check_input_dimension(self, slice(0, 1), 2)
+        check_dtype_of_inputs(self, slice(None), dtype="d")
+        check_dimension_of_inputs(self, slice(0, 1), 2)
         check_inputs_equivalence(self, slice(0, 1))
-        copy_from_input_to_output(self, "enu", "result", edges=False, meshes=False)
-        assign_output_axes_from_inputs(
-            self, ("enu", "costheta"), "result", assign_meshes=True
+        copy_from_inputs_to_outputs(self, "enu", "result", edges=False, meshes=False)
+        assign_axes_from_inputs_to_outputs(
+            self, ("enu", "costheta"), "result", assign_meshes=True, merge_input_axes=False
         )
 
 

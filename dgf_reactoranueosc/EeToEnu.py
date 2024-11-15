@@ -8,10 +8,10 @@ from numpy import sqrt
 from dagflow.core.input_handler import MissingInputAddPair
 from dagflow.core.node import Node
 from dagflow.core.type_functions import (
-    assign_output_axes_from_inputs,
-    check_input_dimension,
+    assign_axes_from_inputs_to_outputs,
+    check_dimension_of_inputs,
     check_inputs_equivalence,
-    copy_from_input_to_output,
+    copy_from_inputs_to_outputs,
 )
 
 if TYPE_CHECKING:
@@ -91,12 +91,12 @@ class EeToEnu(Node):
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape."""
-        check_input_dimension(self, slice(0, 2), 2)
+        check_dimension_of_inputs(self, slice(0, 2), 2)
         check_inputs_equivalence(self, slice(0, 2))
-        copy_from_input_to_output(
+        copy_from_inputs_to_outputs(
             self, self._input_energy_type, "result", edges=False, meshes=False
         )
-        assign_output_axes_from_inputs(
+        assign_axes_from_inputs_to_outputs(
             self, (self._input_energy_type, "costheta"), "result", assign_meshes=True
         )
 
