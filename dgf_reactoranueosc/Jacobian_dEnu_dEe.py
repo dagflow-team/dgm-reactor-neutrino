@@ -8,10 +8,10 @@ from numpy import sqrt
 from dagflow.core.input_handler import MissingInputAddPair
 from dagflow.core.node import Node
 from dagflow.core.type_functions import (
-    assign_output_axes_from_inputs,
-    check_input_dimension,
+    assign_axes_from_inputs_to_outputs,
+    check_dimension_of_inputs,
     check_inputs_equivalence,
-    copy_from_input_to_output,
+    copy_from_inputs_to_outputs,
 )
 
 if TYPE_CHECKING:
@@ -49,9 +49,7 @@ class Jacobian_dEnu_dEe(Node):
     _input_energy_type: Literal["ee", "edep"]
     _use_edep: bool
 
-    def __init__(
-        self, name, *args, input_energy: Literal["ee", "edep"] = "ee", **kwargs
-    ):
+    def __init__(self, name, *args, input_energy: Literal["ee", "edep"] = "ee", **kwargs):
         kwargs.setdefault("missing_input_handler", MissingInputAddPair())
         super().__init__(name, *args, **kwargs)
 
@@ -101,13 +99,15 @@ class Jacobian_dEnu_dEe(Node):
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape."""
-        check_input_dimension(self, slice(0, 3), 2)
+        check_dimension_of_inputs(self, slice(0, 3), 2)
         check_inputs_equivalence(self, slice(0, 3))
-        copy_from_input_to_output(
-            self, self._input_energy_type, "result", edges=False, meshes=False
-        )
-        assign_output_axes_from_inputs(
-            self, (self._input_energy_type, "costheta"), "result", assign_meshes=True
+        copy_from_inputs_to_outputs(self, self._input_energy_type, "result", edges=False, meshes=False)
+        assign_axes_from_inputs_to_outputs(
+            self,
+            (self._input_energy_type, "costheta"),
+            "result",
+            assign_meshes=True,
+            merge_input_axes=True,
         )
 
 

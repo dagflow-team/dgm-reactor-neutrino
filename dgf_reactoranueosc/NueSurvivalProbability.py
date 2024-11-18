@@ -9,9 +9,9 @@ from scipy.constants import value
 from dagflow.core.node import Node
 from dagflow.core.storage import NodeStorage
 from dagflow.core.type_functions import (
-    assign_output_axes_from_inputs,
-    check_input_shape,
-    copy_from_input_to_output,
+    assign_axes_from_inputs_to_outputs,
+    check_shape_of_inputs,
+    copy_from_inputs_to_outputs,
 )
 
 if TYPE_CHECKING:
@@ -140,7 +140,7 @@ class NueSurvivalProbability(Node):
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
-        check_input_shape(
+        check_shape_of_inputs(
             self,
             (
                 "L",
@@ -153,8 +153,8 @@ class NueSurvivalProbability(Node):
             (1,),
         )
         # check_input_subtype(self, "nmo", integer)
-        copy_from_input_to_output(self, "E", "result")
-        assign_output_axes_from_inputs(
+        copy_from_inputs_to_outputs(self, "E", "result")
+        assign_axes_from_inputs_to_outputs(
             self, "E", "result", assign_meshes=True, overwrite_assigned=True
         )
 
