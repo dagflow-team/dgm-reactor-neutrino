@@ -81,9 +81,9 @@ class IBDXsecVBO1(Node):
 
     def _function(self):
         _ibdxsecO1(
-            self._enu.data.ravel(),
-            self._ctheta.data.ravel(),
-            self._result.data.ravel(),
+            self._enu.data,
+            self._ctheta.data,
+            self._result.data,
             self._const_me.data[0],
             self._const_mp.data[0],
             self._const_mn.data[0],
@@ -145,14 +145,15 @@ def _ibdxsecO1(
     J2MeV = 1.0 / MeV2J
     MeV2cm = power(_constant_hbar * _constant_c * J2MeV, 2) * 1.0e4
 
-    for i, (Enu, ctheta) in enumerate(zip(EnuIn, CosThetaIn)):
+    result = Result.ravel()
+    for i, (Enu, ctheta) in enumerate(zip(EnuIn.ravel(), CosThetaIn.ravel())):
         if Enu < EnuThreshold:
-            Result[i] = 0.0
+            result[i] = 0.0
             continue
 
         Ee0 = Enu - DeltaNP
         if Ee0 <= ElectronMass:
-            Result[i] = 0.0
+            result[i] = 0.0
             continue
 
         pe0 = sqrt(Ee0 * Ee0 - ElectronMass2)
@@ -160,7 +161,7 @@ def _ibdxsecO1(
 
         Ee1 = Ee0 * (1.0 - Enu / NucleonMass * (1.0 - ve0 * ctheta)) - const_y2 / NucleonMass
         if Ee1 <= ElectronMass:
-            Result[i] = 0.0
+            result[i] = 0.0
             continue
         pe1 = sqrt(Ee1 * Ee1 - ElectronMass2)
         ve1 = pe1 / Ee1
@@ -186,4 +187,4 @@ def _ibdxsecO1(
 
         sigma1b = -0.5 * sigma0 * Ee0 * pe0 * (gamma_1 + gamma_2 + gamma_3 + gamma_4) / NucleonMass
 
-        Result[i] = MeV2cm * (sigma1a + sigma1b)
+        result[i] = MeV2cm * (sigma1a + sigma1b)
