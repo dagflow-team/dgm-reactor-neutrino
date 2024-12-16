@@ -91,7 +91,7 @@ class Jacobian_dEnu_dEe(Node):
             self._enu.data.ravel(),
             self._e_input.data.ravel(),
             self._ctheta.data.ravel(),
-            self._result.data.ravel(),
+            self._result._data.ravel(),
             self._const_me.data[0],
             self._const_mp.data[0],
             self._use_edep,

@@ -178,18 +178,18 @@ class NueSurvivalProbability(Node):
     def _post_allocate(self):
         super()._post_allocate()
 
-        self._result = self.outputs["result"].data_unsafe.ravel()
+        self._result = self.outputs["result"]._data.ravel()
 
-        self._E = self.inputs["E"].data_unsafe.ravel()
-        self._L = self.inputs["L"].data_unsafe
-        self._SinSq2Theta12 = self.inputs["SinSq2Theta12"].data_unsafe
-        self._SinSq2Theta13 = self.inputs["SinSq2Theta13"].data_unsafe
-        self._DeltaMSq21 = self.inputs["DeltaMSq21"].data_unsafe
-        self._DeltaMSq32 = self.inputs["DeltaMSq32"].data_unsafe
-        self._nmo = self.inputs["nmo"].data_unsafe
+        self._E = self.inputs["E"]._data.ravel()
+        self._L = self.inputs["L"]._data
+        self._SinSq2Theta12 = self.inputs["SinSq2Theta12"]._data
+        self._SinSq2Theta13 = self.inputs["SinSq2Theta13"]._data
+        self._DeltaMSq21 = self.inputs["DeltaMSq21"]._data
+        self._DeltaMSq32 = self.inputs["DeltaMSq32"]._data
+        self._nmo = self.inputs["nmo"]._data
 
         if conversion_input := self.inputs.get("surprobArgConversion"):
-            self._surprob_arg_conversion_factor = conversion_input.data_unsafe
+            self._surprob_arg_conversion_factor = conversion_input._data
         else:
             self._surprob_arg_conversion_factor = array([_surprobArgConversion])
 

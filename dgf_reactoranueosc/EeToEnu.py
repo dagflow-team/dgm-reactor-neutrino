@@ -80,7 +80,7 @@ class EeToEnu(Node):
         _enu(
             self._e_input.data.ravel(),
             self._ctheta.data.ravel(),
-            self._result.data.ravel(),
+            self._result._data.ravel(),
             self._const_me.data[0],
             self._const_mp.data[0],
             self._const_mn.data[0],
