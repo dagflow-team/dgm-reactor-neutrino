@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 from dagflow.core.graph import Graph
 from dagflow.plot.graphviz import savegraph
 from dagflow.lib.common import Array
