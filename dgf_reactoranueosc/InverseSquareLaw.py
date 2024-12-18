@@ -53,11 +53,11 @@ class InverseSquareLaw(OneToOneNode):
             self.function = self._fcn_scaled
 
     def _fcn_normal(self):
-        for inp, out in zip(self.inputs.iter_data(), self.outputs.iter_data()):
-            _inv_sq_law(inp.ravel(), out.ravel())
+        for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
+            _inv_sq_law(indata.ravel(), outdata.ravel())
 
     def _fcn_scaled(self):
         scale = self._scale
-        for inp, out in zip(self.inputs.iter_data(), self.outputs.iter_data()):
-            _inv_sq_law(inp.ravel(), out.ravel())
-            multiply(out, scale, out=out)
+        for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
+            _inv_sq_law(indata.ravel(), outdata.ravel())
+            multiply(outdata, scale, out=outdata)

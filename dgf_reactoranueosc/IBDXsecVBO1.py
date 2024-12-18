@@ -83,7 +83,7 @@ class IBDXsecVBO1(Node):
         _ibdxsecO1(
             self._enu.data,
             self._ctheta.data,
-            self._result.data,
+            self._result._data,
             self._const_me.data[0],
             self._const_mp.data[0],
             self._const_mn.data[0],
