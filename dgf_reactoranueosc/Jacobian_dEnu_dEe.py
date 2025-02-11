@@ -50,8 +50,7 @@ class Jacobian_dEnu_dEe(Node):
     _use_edep: bool
 
     def __init__(self, name, *args, input_energy: Literal["ee", "edep"] = "ee", **kwargs):
-        kwargs.setdefault("input_strategy", AddNewInputAddNewOutput())
-        super().__init__(name, *args, **kwargs)
+        super().__init__(name, *args, **kwargs, input_strategy=AddNewInputAddNewOutput())
 
         self._input_energy_type = input_energy
         match input_energy:

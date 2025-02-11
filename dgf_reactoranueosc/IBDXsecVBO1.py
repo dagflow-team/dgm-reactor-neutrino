@@ -55,8 +55,7 @@ class IBDXsecVBO1(Node):
     _const_f2: Input
 
     def __init__(self, name, *args, **kwargs):
-        kwargs.setdefault("input_strategy", AddNewInputAddNewOutput())
-        super().__init__(name, *args, **kwargs)
+        super().__init__(name, *args, **kwargs, input_strategy=AddNewInputAddNewOutput())
         self.labels.setdefaults(
             {
                 "text": r"IBD cross section σ(Eν,cosθ), cm⁻²",
