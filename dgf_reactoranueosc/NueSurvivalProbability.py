@@ -138,7 +138,7 @@ class NueSurvivalProbability(Node):
         except KeyError as e:
             raise RuntimeError(f"Invalid distance unit {distance_unit}") from e
 
-    def _typefunc(self) -> None:
+    def _type_function(self) -> None:
         """A output takes this function to determine the dtype and shape"""
         check_shape_of_inputs(
             self,

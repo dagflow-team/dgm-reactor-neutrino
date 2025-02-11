@@ -46,17 +46,17 @@ class InverseSquareLaw(OneToOneNode):
         self._labels.setdefault("mark", "1/(4πL²)")
         self._scale = _scales[scale]
 
-        self._functions_dict.update({"normal": self._fcn_normal, "scaled": self._fcn_scaled})
+        self._functions_dict.update({"normal": self._function_normal, "scaled": self._function_scaled})
         if scale is None or self._scale == 1.0:
-            self.function = self._fcn_normal
+            self.function = self._function_normal
         else:
-            self.function = self._fcn_scaled
+            self.function = self._function_scaled
 
-    def _fcn_normal(self):
+    def _function_normal(self):
         for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
             _inv_sq_law(indata.ravel(), outdata.ravel())
 
-    def _fcn_scaled(self):
+    def _function_scaled(self):
         scale = self._scale
         for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
             _inv_sq_law(indata.ravel(), outdata.ravel())
