@@ -6,7 +6,7 @@ from numba import njit
 from numpy import pi, power, sqrt
 from scipy.constants import value as constant
 
-from dagflow.core.input_handler import MissingInputAddPair
+from dagflow.core.input_strategy import AddNewInputAddNewOutput
 from dagflow.core.node import Node
 from dagflow.core.type_functions import (
     assign_axes_from_inputs_to_outputs,
@@ -55,8 +55,7 @@ class IBDXsecVBO1(Node):
     _const_f2: Input
 
     def __init__(self, name, *args, **kwargs):
-        kwargs.setdefault("missing_input_handler", MissingInputAddPair())
-        super().__init__(name, *args, **kwargs)
+        super().__init__(name, *args, **kwargs, input_strategy=AddNewInputAddNewOutput())
         self.labels.setdefaults(
             {
                 "text": r"IBD cross section σ(Eν,cosθ), cm⁻²",
@@ -94,7 +93,7 @@ class IBDXsecVBO1(Node):
             self._const_f2.data[0],
         )
 
-    def _typefunc(self) -> None:
+    def _type_function(self) -> None:
         """A output takes this function to determine the dtype and shape"""
         check_dtype_of_inputs(self, slice(None), dtype="d")
         check_dimension_of_inputs(self, slice(0, 1), 2)
