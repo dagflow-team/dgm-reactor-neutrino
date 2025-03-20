@@ -204,9 +204,9 @@ class NueSurvivalProbability(Node):
         **kwargs,
     ) -> tuple[Node | None, NodeStorage]:
         storage = NodeStorage()
-        nodes = storage.child("nodes")
-        inputs = storage.child("inputs")
-        outputs = storage.child("outputs")
+        nodes = storage.create_child("nodes")
+        inputs = storage.create_child("inputs")
+        outputs = storage.create_child("outputs")
 
         nametuple = tuple(name.split("."))
         for key in replicate_outputs:

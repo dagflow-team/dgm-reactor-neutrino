@@ -92,9 +92,9 @@ class IBDXsecVBO1Group(MetaNode):
         name_jacobian = strkey((path, names.get("jacobian", "jacobian")))
 
         storage = NodeStorage(default_containers=True)
-        nodes = storage.child("nodes")
-        inputs = storage.child("inputs")
-        outputs = storage.child("outputs")
+        nodes = storage.create_child("nodes")
+        inputs = storage.create_child("inputs")
+        outputs = storage.create_child("outputs")
 
         ibd = cls(name_ibd, name_enu, name_jacobian, *args, **kwargs)
 
