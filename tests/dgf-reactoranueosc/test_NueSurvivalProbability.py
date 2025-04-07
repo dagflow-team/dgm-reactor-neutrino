@@ -26,15 +26,15 @@ def test_NueSurvivalProbability_01(debug_graph, testname, L, nmo, conversionFact
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
         surprob = NueSurvivalProbability("P(ee)")
-        (in_E := Array("E", E)) >> surprob("E")
-        (in_L := Array("L", [L])) >> surprob("L")
-        (in_nmo := Array("nmo", [nmo])) >> surprob("nmo")
-        (in_Dm21 := Array("DeltaMSq21", [DeltaMSq21])) >> surprob("DeltaMSq21")
-        (in_Dm32 := Array("DeltaMSq32", [DeltaMSq32])) >> surprob("DeltaMSq32")
-        (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12])) >> surprob("SinSq2Theta12")
-        (in_t13 := Array("SinSq2Theta13", [SinSq2Theta13])) >> surprob("SinSq2Theta13")
+        (in_E := Array("E", E, mode="fill")) >> surprob("E")
+        (in_L := Array("L", [L], mode="fill")) >> surprob("L")
+        (in_nmo := Array("nmo", [nmo], mode="fill")) >> surprob("nmo")
+        (in_Dm21 := Array("DeltaMSq21", [DeltaMSq21], mode="fill")) >> surprob("DeltaMSq21")
+        (in_Dm32 := Array("DeltaMSq32", [DeltaMSq32], mode="fill")) >> surprob("DeltaMSq32")
+        (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12], mode="fill")) >> surprob("SinSq2Theta12")
+        (in_t13 := Array("SinSq2Theta13", [SinSq2Theta13], mode="fill")) >> surprob("SinSq2Theta13")
         if conversionFactor is not None:
-            (in_conversion := Array("surprobArgConversion", [conversionFactor])) >> surprob(
+            (in_conversion := Array("surprobArgConversion", [conversionFactor], mode="fill")) >> surprob(
                 "surprobArgConversion"
             )
         else:

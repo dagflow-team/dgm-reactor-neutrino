@@ -48,9 +48,9 @@ def test_IBDXsecVBO1(debug_graph, testname):
     with Graph(debug=debug_graph, close_on_exit=True) as graph:
         storage = load_parameters(data)
 
-        enu = Array('enu', enu2)
-        ee = Array('ee', ee2)
-        ctheta = Array('ctheta', ctheta2)
+        enu = Array('enu', enu2, mode="fill")
+        ee = Array('ee', ee2, mode="fill")
+        ctheta = Array('ctheta', ctheta2, mode="fill")
 
         ibdxsec_enu = IBDXsecVBO1('ibd_Eν')
         ibdxsec_ee = IBDXsecVBO1('ibd_Ee')
