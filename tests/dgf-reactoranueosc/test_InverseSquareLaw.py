@@ -17,7 +17,7 @@ def test_InverseSquareLaw_01(debug_graph, testname, dtype, scalename):
     arrays_in = tuple(linspace(1, 10, 10, dtype=dtype) * i for i in (1, 2, 3))
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
-        arrays = tuple(Array("test", array_in) for array_in in arrays_in)
+        arrays = tuple(Array("test", array_in, mode="fill") for array_in in arrays_in)
         isl = InverseSquareLaw("InvSqLaw", scale=scalename)
         arrays >> isl
 
