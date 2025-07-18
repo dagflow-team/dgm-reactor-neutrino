@@ -59,7 +59,7 @@ class IBDXsecVBO1(Node):
         self.labels.setdefaults(
             {
                 "text": r"IBD cross section σ(Eν,cosθ), cm⁻²",
-                "plottitle": r"IBD cross section $\sigma(E_{\nu}, \cos\theta)$, cm$^{-2}$",
+                "plot_title": r"IBD cross section $\sigma(E_{\nu}, \cos\theta)$, cm$^{-2}$",
                 "latex": r"IBD cross section $\sigma(E_{\nu}, \cos\theta)$, cm$^{-2}$",
                 "axis": r"$\sigma(E_{\nu}, \cos\theta)$, cm$^{-2}$",
             }

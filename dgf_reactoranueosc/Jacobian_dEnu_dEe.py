@@ -59,7 +59,7 @@ class Jacobian_dEnu_dEe(Node):
                 self.labels.setdefaults(
                     {
                         "text": r"Energy conversion Jacobian dEν/dEe",
-                        "plottitle": r"Energy conversion Jacobian $dE_{\nu}/dE_{e}$",
+                        "plot_title": r"Energy conversion Jacobian $dE_{\nu}/dE_{e}$",
                         "latex": r"$dE_{\nu}/dE_{e}$",
                         "axis": r"$dE_{\nu}/dE_{e}$",
                     }
@@ -69,7 +69,7 @@ class Jacobian_dEnu_dEe(Node):
                 self.labels.setdefaults(
                     {
                         "text": r"Energy conversion Jacobian dEν/dEdep",
-                        "plottitle": r"Energy conversion Jacobian $dE_{\nu}/dE_{\rm dep}$",
+                        "plot_title": r"Energy conversion Jacobian $dE_{\nu}/dE_{\rm dep}$",
                         "latex": r"$dE_{\nu}/dE_{\rm dep}$",
                         "axis": r"$dE_{\nu}/dE_{\rm dep}$",
                     }

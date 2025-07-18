@@ -52,7 +52,7 @@ class EeToEnu(Node):
         self.labels.setdefaults(
             {
                 "text": r"Neutrino energy Eν, MeV",
-                "plottitle": r"Neutrino energy $E_{\nu}$, MeV",
+                "plot_title": r"Neutrino energy $E_{\nu}$, MeV",
                 "latex": r"$E_{\nu}$, MeV",
                 "axis": r"$E_{\nu}$, MeV",
             }
