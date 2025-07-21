@@ -1,14 +1,14 @@
 #!/usr/bin/env python
-from dagflow.core.graph import Graph
-from dagflow.plot.graphviz import savegraph
-from dagflow.lib.common import Array
-from dagflow.bundles.load_parameters import load_parameters
-from numpy import linspace, meshgrid, meshgrid
-
-from dgf_reactoranueosc.IBDXsecVBO1Group import IBDXsecVBO1Group
-from dagflow.plot.plot import plot_auto
-
 from matplotlib.pyplot import subplots
+from numpy import linspace, meshgrid
+
+from dagflow.bundles.load_parameters import load_parameters
+from dagflow.core.graph import Graph
+from dagflow.lib.common import Array
+from dagflow.plot.graphviz import savegraph
+from dagflow.plot.plot import plot_auto
+from dgf_reactoranueosc.IBDXsecVBO1Group import IBDXsecVBO1Group
+
 
 def test_IBDXsecVBO1Group(debug_graph, testname):
     data = {
@@ -64,37 +64,38 @@ def test_IBDXsecVBO1Group(debug_graph, testname):
 
     show = False
     close = not show
-    from mpl_toolkits.mplot3d import axes3d # accessed implicitly in `subplots()`
+    from mpl_toolkits.mplot3d import \
+        axes3d  # accessed implicitly in `subplots()`
     subplots(1, 1, subplot_kw={'projection': '3d'})
-    plot_auto(ibdxsec, method='surface', cmap=True, colorbar=True,
+    plot_auto(ibdxsec, plotoptions={"method": "surface"}, cmap=True, colorbar=True,
               show=False, close=close, save=f"output/{testname}_xsec_surf.pdf")
 
     subplots(1, 1, subplot_kw={'projection': '3d'})
-    plot_auto(ibdxsec, method='wireframe', cmap=True, colorbar=True,
+    plot_auto(ibdxsec, plotoptions={"method": "wireframe"}, cmap=True, colorbar=True,
               show=False, close=close, save=f"output/{testname}_xsec_wirec.pdf")
 
     subplots(1, 1, subplot_kw={'projection': '3d'})
-    plot_auto(ibdxsec, method='wireframe',
+    plot_auto(ibdxsec, plotoptions={"method": "wireframe"},
               show=False, close=close, save=f"output/{testname}_xsec_wire.pdf")
 
     subplots(1, 1)
-    plot_auto(ibdxsec, method='pcolormesh', colorbar=True,
+    plot_auto(ibdxsec, plotoptions={"method": "pcolormesh"}, colorbar=True,
               show=False, close=close, save=f"output/{testname}_xsec_mesh.pdf")
 
     subplots(1, 1)
-    plot_auto(ibdxsec.outputs['enu'], method='pcolormesh', colorbar=True,
+    plot_auto(ibdxsec.outputs['enu'], plotoptions={"method": "pcolormesh"}, colorbar=True,
               show=False, close=close, save=f"output/{testname}_enu_mesh.pdf")
 
     subplots(1, 1, subplot_kw={'projection': '3d'})
-    plot_auto(ibdxsec.outputs['enu'], method='surface', cmap=True, colorbar=True,
+    plot_auto(ibdxsec.outputs['enu'], plotoptions={"method": "surface"}, cmap=True, colorbar=True,
               show=False, close=close, save=f"output/{testname}_enu_surf.pdf")
 
     subplots(1, 1)
-    plot_auto(ibdxsec.outputs['jacobian'], method='pcolormesh', colorbar=True,
+    plot_auto(ibdxsec.outputs['jacobian'], plotoptions={"method": "pcolormesh"}, colorbar=True,
               show=False, close=close, save=f"output/{testname}_jac_mesh.pdf")
 
     subplots(1, 1, subplot_kw={'projection': '3d'})
-    plot_auto(ibdxsec.outputs['jacobian'], method='surface', cmap=True, colorbar=True,
+    plot_auto(ibdxsec.outputs['jacobian'], plotoptions={"method": "surface"}, cmap=True, colorbar=True,
               show=show, close=True, save=f"output/{testname}_jac_surf.pdf")
 
     savegraph(graph, f"output/{testname}.pdf")
