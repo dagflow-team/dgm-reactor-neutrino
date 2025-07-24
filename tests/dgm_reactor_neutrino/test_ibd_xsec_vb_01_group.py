@@ -4,9 +4,10 @@ from dag_modelling.core.graph import Graph
 from dag_modelling.lib.common import Array
 from dag_modelling.plot.graphviz import savegraph
 from dag_modelling.plot.plot import plot_auto
-from dgm_reactor_neurino.IBDXsecVBO1Group import IBDXsecVBO1Group
 from matplotlib.pyplot import subplots
 from numpy import linspace, meshgrid
+
+from dgm_reactor_neutrino import IBDXsecVBO1Group
 
 
 def test_IBDXsecVBO1Group(debug_graph, testname):

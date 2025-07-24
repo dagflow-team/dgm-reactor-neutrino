@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-from dgm_reactor_neurino.IBDXsecVBO1 import _ibdxsecO1
 from matplotlib import pyplot as plt
 from numpy import linspace, meshgrid, zeros_like
+
+from dgm_reactor_neutrino.ibd_xsec_vb_o1 import _ibdxsecO1
 
 plt.rcParams.update(
     {

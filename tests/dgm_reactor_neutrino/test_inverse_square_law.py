@@ -3,9 +3,10 @@
 from dag_modelling.core.graph import Graph
 from dag_modelling.lib.common import Array
 from dag_modelling.plot.graphviz import savegraph
-from dgm_reactor_neurino.InverseSquareLaw import InverseSquareLaw
 from numpy import allclose, finfo, linspace, pi
 from pytest import mark
+
+from dgm_reactor_neutrino import InverseSquareLaw
 
 _scales = {"km_to_cm": 1e5, "m_to_cm": 1e2, None: 1}
 

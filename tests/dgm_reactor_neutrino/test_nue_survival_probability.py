@@ -4,13 +4,12 @@ from dag_modelling.core.graph import Graph
 from dag_modelling.lib.common import Array
 from dag_modelling.plot.graphviz import savegraph
 from dag_modelling.plot.plot import plot_auto
-from dgm_reactor_neurino.NueSurvivalProbability import (
-    NueSurvivalProbability,
-    _surprobArgConversion,
-)
 from matplotlib.pyplot import subplots
 from numpy import allclose, arcsin, cos, finfo, geomspace, sin, sqrt
 from pytest import mark
+
+from dgm_reactor_neutrino import NueSurvivalProbability
+from dgm_reactor_neutrino.nue_survival_probability import _surprobArgConversion
 
 
 @mark.parametrize("nmo", (1, -1))  # mass ordering
