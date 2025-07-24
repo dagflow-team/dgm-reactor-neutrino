@@ -5,26 +5,23 @@ tests:
   image: 'python:3.11.7-bullseye'
   stage: tests
 
-  variables:
-    GIT_DEPTH: 1
   script:
     - apt-get update
     - apt-get -y install libgraphviz-dev graphviz
     - python3 -m venv venv
     - source venv/bin/activate
-    - git submodule sync
-    - git submodule update --init --recursive --depth=1 -- submodules/dag-flow
-    - python3 -m pip install --upgrade pip
-    - python3 -m pip install $(find . -name requirements.txt -type f -printf "-r %p\n")
-    - mkdir output
-    - coverage run --source=. --omit=submodules/* -m pytest
+    - pip install --upgrade wheel setuptools pip
+    - pip install cython
+    # nested-dict is yet in testing
+    - pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple -e ".[dev]"
+    # - pip install -e ".[dev]"
+    - coverage run --source=. -m pytest
     - coverage report
     - coverage xml
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     paths:
-      - test
-      - output
+      - tests/output
     reports:
       coverage_report:
         coverage_format: cobertura
