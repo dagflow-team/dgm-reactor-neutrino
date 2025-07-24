@@ -1,5 +1,0 @@
-coverage
-numba
-pytest
-pytest-cov
-scipy
