@@ -1,0 +1,35 @@
+[project]
+name = "dgm-reactor-neutrino"
+version = "0.1"
+description = "The package implements computational nodes for reactor electron antineutrino (oscillation) physics analysis for DAGModelling"
+authors = [{ name = "DAGModelling Team", email = "dagflow@jinr.ru" }]
+maintainers = [{ name = "DAGModelling Team", email = "dagflow@jinr.ru" }]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "numba",
+  "scipy",
+  "dag-modelling",
+]
+
+[project.urls]
+homepage = "https://github.com/dagflow-team/dgm-reactor-neutrino"
+repository = "https://github.com/dagflow-team/dgm-reactor-neutrino"
+documentation = "https://github.com/dagflow-team/dag-modelling/wiki"
+"DAGModelling Team" = "https://github.com/dagflow-team"
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov", "coverage"]
+
+[build-system]
+requires = ["setuptools", "wheel", "packaging"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = [
+  "tests*",
+  "docs*",
+  "example*",
+]
