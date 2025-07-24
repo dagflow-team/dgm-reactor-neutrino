@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
+from dag_modelling.core.graph import Graph
+from dag_modelling.lib.common import Array
+from dag_modelling.plot.graphviz import savegraph
+from dgm_reactor_neurino.InverseSquareLaw import InverseSquareLaw
 from numpy import allclose, finfo, linspace, pi
 from pytest import mark
-
-from dagflow.core.graph import Graph
-from dagflow.lib.common import Array
-from dagflow.plot.graphviz import savegraph
-from dgf_reactoranueosc.InverseSquareLaw import InverseSquareLaw
 
 _scales = {"km_to_cm": 1e5, "m_to_cm": 1e2, None: 1}
 
@@ -28,7 +27,8 @@ def test_InverseSquareLaw_01(debug_graph, testname, dtype, scalename):
     assert isl.tainted is True
     assert all(output.dd.dtype == dtype for output in isl.outputs)
     assert all(
-        allclose(output.data, res, rtol=0, atol=atol) for output, res in zip(isl.outputs, res_all)
+        allclose(output.data, res, rtol=0, atol=atol)
+        for output, res in zip(isl.outputs, res_all)
     )
     assert isl.tainted is False
 

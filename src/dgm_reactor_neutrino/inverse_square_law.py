@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from dagflow.lib.abstract import OneToOneNode
+from dag_modelling.lib.abstract import OneToOneNode
 from numba import njit
 from numpy import multiply, pi
 

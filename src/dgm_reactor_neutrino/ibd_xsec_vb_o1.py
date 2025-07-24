@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from dagflow.core.input_strategy import AddNewInputAddNewOutput
-from dagflow.core.node import Node
-from dagflow.core.type_functions import (
+from dag_modelling.core.input_strategy import AddNewInputAddNewOutput
+from dag_modelling.core.node import Node
+from dag_modelling.core.type_functions import (
     assign_axes_from_inputs_to_outputs,
     check_dimension_of_inputs,
     check_dtype_of_inputs,
@@ -16,8 +16,8 @@ from numpy import pi, power, sqrt
 from scipy.constants import value as constant
 
 if TYPE_CHECKING:
-    from dagflow.core.input import Input
-    from dagflow.core.output import Output
+    from dag_modelling.core.input import Input
+    from dag_modelling.core.output import Output
     from numpy import double
     from numpy.typing import NDArray
 

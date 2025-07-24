@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from dagflow.core.meta_node import MetaNode
-from multikeydict.typing import KeyLike, strkey
+from dag_modelling.core.meta_node import MetaNode
+from nested_mapping.typing import KeyLike, strkey
 
 from .EeToEnu import EeToEnu
 from .IBDXsecVBO1 import IBDXsecVBO1
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
     from typing import Literal
 
-    from dagflow.core import NodeStorage
+    from dag_modelling.core import NodeStorage
 
 
 class IBDXsecVBO1Group(MetaNode):
@@ -84,7 +84,7 @@ class IBDXsecVBO1Group(MetaNode):
         verbose: bool = False,
         **kwargs,
     ) -> tuple[IBDXsecVBO1Group, NodeStorage]:
-        from dagflow.core import NodeStorage
+        from dag_modelling.core import NodeStorage
 
         path = strkey(path)
         name_ibd = strkey((path, names.get("ibd", "crosssection")))

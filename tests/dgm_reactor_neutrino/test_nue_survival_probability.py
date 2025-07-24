@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 
+from dag_modelling.core.graph import Graph
+from dag_modelling.lib.common import Array
+from dag_modelling.plot.graphviz import savegraph
+from dag_modelling.plot.plot import plot_auto
+from dgm_reactor_neurino.NueSurvivalProbability import (
+    NueSurvivalProbability,
+    _surprobArgConversion,
+)
 from matplotlib.pyplot import subplots
 from numpy import allclose, arcsin, cos, finfo, geomspace, sin, sqrt
 from pytest import mark
-
-from dagflow.core.graph import Graph
-from dagflow.lib.common import Array
-from dagflow.plot.graphviz import savegraph
-from dagflow.plot.plot import plot_auto
-from dgf_reactoranueosc.NueSurvivalProbability import NueSurvivalProbability, _surprobArgConversion
 
 
 @mark.parametrize("nmo", (1, -1))  # mass ordering
@@ -29,14 +31,24 @@ def test_NueSurvivalProbability_01(debug_graph, testname, L, nmo, conversionFact
         (in_E := Array("E", E, mode="fill")) >> surprob("E")
         (in_L := Array("L", [L], mode="fill")) >> surprob("L")
         (in_nmo := Array("nmo", [nmo], mode="fill")) >> surprob("nmo")
-        (in_Dm21 := Array("DeltaMSq21", [DeltaMSq21], mode="fill")) >> surprob("DeltaMSq21")
-        (in_Dm32 := Array("DeltaMSq32", [DeltaMSq32], mode="fill")) >> surprob("DeltaMSq32")
-        (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12], mode="fill")) >> surprob("SinSq2Theta12")
-        (in_t13 := Array("SinSq2Theta13", [SinSq2Theta13], mode="fill")) >> surprob("SinSq2Theta13")
+        (in_Dm21 := Array("DeltaMSq21", [DeltaMSq21], mode="fill")) >> surprob(
+            "DeltaMSq21"
+        )
+        (in_Dm32 := Array("DeltaMSq32", [DeltaMSq32], mode="fill")) >> surprob(
+            "DeltaMSq32"
+        )
+        (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12], mode="fill")) >> surprob(
+            "SinSq2Theta12"
+        )
+        (in_t13 := Array("SinSq2Theta13", [SinSq2Theta13], mode="fill")) >> surprob(
+            "SinSq2Theta13"
+        )
         if conversionFactor is not None:
-            (in_conversion := Array("surprobArgConversion", [conversionFactor], mode="fill")) >> surprob(
-                "surprobArgConversion"
-            )
+            (
+                in_conversion := Array(
+                    "surprobArgConversion", [conversionFactor], mode="fill"
+                )
+            ) >> surprob("surprobArgConversion")
         else:
             in_conversion = None
     if conversionFactor is None:
@@ -54,7 +66,10 @@ def test_NueSurvivalProbability_01(debug_graph, testname, L, nmo, conversionFact
         res = (
             1
             - SinSq2Theta13
-            * (_SinSqTheta12 * sin(_DeltaMSq32 * tmp) ** 2 + _CosSqTheta12 * sin(_DeltaMSq31 * tmp) ** 2)
+            * (
+                _SinSqTheta12 * sin(_DeltaMSq32 * tmp) ** 2
+                + _CosSqTheta12 * sin(_DeltaMSq31 * tmp) ** 2
+            )
             - SinSq2Theta12 * _CosQuTheta13 * sin(DeltaMSq21 * tmp) ** 2
         )
         return res
