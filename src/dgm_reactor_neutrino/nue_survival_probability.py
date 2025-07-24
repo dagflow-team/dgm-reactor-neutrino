@@ -2,10 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from numba import njit
-from numpy import array, pi, sin, sqrt
-from scipy.constants import value
-
 from dagflow.core.node import Node
 from dagflow.core.storage import NodeStorage
 from dagflow.core.type_functions import (
@@ -13,16 +9,18 @@ from dagflow.core.type_functions import (
     check_shape_of_inputs,
     copy_from_inputs_to_outputs,
 )
+from numba import njit
+from numpy import array, pi, sin, sqrt
+from scipy.constants import value
 
 if TYPE_CHECKING:
     from typing import Literal
 
-    from numpy import double
-    from numpy.typing import NDArray
-
     from dagflow.core.node import Node
     from dagflow.core.output import Output
     from multikeydict.typing import KeyLike
+    from numpy import double
+    from numpy.typing import NDArray
 
 _surprobArgConversion = pi * 2e-3 * value("electron volt-inverse meter relationship")
 
@@ -139,7 +137,7 @@ class NueSurvivalProbability(Node):
             raise RuntimeError(f"Invalid distance unit {distance_unit}") from e
 
     def _type_function(self) -> None:
-        """A output takes this function to determine the dtype and shape"""
+        """A output takes this function to determine the dtype and shape."""
         check_shape_of_inputs(
             self,
             (
