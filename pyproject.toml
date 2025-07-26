@@ -16,7 +16,7 @@ dependencies = [
 [project.urls]
 homepage = "https://github.com/dagflow-team/dgm-reactor-neutrino"
 repository = "https://github.com/dagflow-team/dgm-reactor-neutrino"
-documentation = "https://github.com/dagflow-team/dag-modelling/wiki"
+documentation = "https://github.com/dagflow-team/dag-reactor-neutrino/wiki"
 "DAGModelling Team" = "https://github.com/dagflow-team"
 
 [project.optional-dependencies]
