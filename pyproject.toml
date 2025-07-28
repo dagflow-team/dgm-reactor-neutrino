@@ -1,35 +1,46 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+
+requires = [ "packaging", "setuptools", "wheel" ]
+
 [project]
 name = "dgm-reactor-neutrino"
 version = "0.1"
-description = "The package implements computational nodes for reactor electron antineutrino (oscillation) physics analysis for DAGModelling"
-authors = [{ name = "DAGModelling Team", email = "dagflow@jinr.ru" }]
-maintainers = [{ name = "DAGModelling Team", email = "dagflow@jinr.ru" }]
-license = "MIT"
+description = "The package implements computational nodes for reactor electron antineutrino (oscillation) physics analysis for dag-modelling"
 readme = "README.md"
+license = "MIT"
+maintainers = [ { name = "DAGModelling Team", email = "dagflow@jinr.ru" } ]
+authors = [ { name = "DAGModelling Team", email = "dagflow@jinr.ru" } ]
 requires-python = ">=3.11"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
 dependencies = [
+  "dag-modelling",
   "numba",
   "scipy",
-  "dag-modelling",
 ]
 
-[project.urls]
-homepage = "https://github.com/dagflow-team/dgm-reactor-neutrino"
-repository = "https://github.com/dagflow-team/dgm-reactor-neutrino"
-documentation = "https://github.com/dagflow-team/dag-reactor-neutrino/wiki"
-"DAGModelling Team" = "https://github.com/dagflow-team"
-
-[project.optional-dependencies]
-dev = ["pytest", "pytest-cov", "coverage"]
-
-[build-system]
-requires = ["setuptools", "wheel", "packaging"]
-build-backend = "setuptools.build_meta"
+optional-dependencies.dev = [ "coverage", "pytest", "pytest-cov" ]
+urls."Bug Tracker" = "https://github.com/dagflow-team/dgm-reactor-neutrino/issues"
+urls."DAGModelling Team" = "https://github.com/dagflow-team"
+urls.documentation = "https://github.com/dagflow-team/dgm-reactor-neutrino/wiki"
+urls.homepage = "https://github.com/dagflow-team/dgm-reactor-neutrino"
+urls.repository = "https://github.com/dagflow-team/dgm-reactor-neutrino"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = [ "src" ]
 exclude = [
   "tests*",
-  "docs*",
-  "example*",
 ]
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 5
