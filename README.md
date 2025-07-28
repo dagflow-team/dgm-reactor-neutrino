@@ -1,4 +1,4 @@
-# Summary
+# dgm-reactor-neutrino
 
 [![python](https://img.shields.io/badge/python-3.11-purple.svg)](https://www.python.org/)
 [![pipeline](https://git.jinr.ru/dag-computing/dagflow-reactorenueosc/badges/master/pipeline.svg)](https://git.jinr.ru/dag-computing/dagflow-reactorenueosc/commits/master)
