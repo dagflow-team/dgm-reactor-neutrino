@@ -1,26 +1,6 @@
-from os import chdir, environ, getcwd, listdir, mkdir
-from os.path import isdir
+from os import environ, makedirs
 
 from pytest import fixture
-
-
-def pytest_sessionstart(session):
-    """Called after the Session object has been created and before performing
-    collection and entering the run test loop.
-
-    Automatic change path to the `dgm-reactor-neutrino/tests` and create
-    `tests/output` dir
-    """
-    while path := getcwd():
-        if (lastdir := path.split("/")[-1]) == "tests":
-            break
-        elif ".git" in listdir(path):
-            chdir("./tests")
-            break
-        else:
-            chdir("..")
-    if not isdir("output"):
-        mkdir("output")
 
 
 def pytest_addoption(parser):
@@ -30,6 +10,19 @@ def pytest_addoption(parser):
         default=False,
         help="set debug=True for all the graphs in tests",
     )
+
+    parser.addoption(
+        "--output-path",
+        default="output/tests",
+        help="choose the location of output materials",
+    )
+
+
+@fixture(scope="session")
+def output_path(request):
+    loc = request.config.option.output_path
+    makedirs(loc, exist_ok=True)
+    return loc
 
 
 @fixture(scope="session")

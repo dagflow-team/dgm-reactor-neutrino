@@ -18,7 +18,7 @@ from dgm_reactor_neutrino.nue_survival_probability import _surprobArgConversion
     "conversionFactor",
     (None, _surprobArgConversion, 0.9 * _surprobArgConversion),
 )
-def test_NueSurvivalProbability_01(debug_graph, test_name, L, nmo, conversionFactor):
+def test_NueSurvivalProbability_01(debug_graph, test_name, L, nmo, conversionFactor, output_path: str):
     E = geomspace(1, 100, 1000)  # MeV
     DeltaMSq21 = 7.39 * 1e-5  # eV^2
     DeltaMSq32 = 2.45 * 1e-3  # eV^2
@@ -85,7 +85,7 @@ def test_NueSurvivalProbability_01(debug_graph, test_name, L, nmo, conversionFac
         filter_kw={"masked_value": 0},
         show=False,
         close=True,
-        save=f"output/{test_name}_plot.pdf",
+        save=f"{output_path}/{test_name}_plot.pdf",
     )
 
     nmo *= -1
@@ -145,4 +145,4 @@ def test_NueSurvivalProbability_01(debug_graph, test_name, L, nmo, conversionFac
         assert allclose(surprob.outputs[0].data, res, rtol=0, atol=atol)
         assert surprob.tainted is False
 
-    savegraph(graph, f"output/{test_name}.png")
+    savegraph(graph, f"{output_path}/{test_name}.png")

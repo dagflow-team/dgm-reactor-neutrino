@@ -11,7 +11,7 @@ from numpy import linspace, meshgrid
 from dgm_reactor_neutrino import EeToEnu, IBDXsecVBO1, Jacobian_dEnu_dEe
 
 
-def test_IBDXsecVBO1(debug_graph, test_name):
+def test_IBDXsecVBO1(debug_graph, test_name: str, output_path: str):
     data = {
         "format": "value",
         "state": "fixed",
@@ -78,7 +78,7 @@ def test_IBDXsecVBO1(debug_graph, test_name):
         filter_kw={"masked_value": 0},
         show=False,
         close=True,
-        save=f"output/{test_name}_plot.pdf",
+        save=f"{output_path}/{test_name}_plot.pdf",
     )
 
-    savegraph(graph, f"output/{test_name}.pdf")
+    savegraph(graph, f"{output_path}/{test_name}.pdf")

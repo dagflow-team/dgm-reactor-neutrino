@@ -10,7 +10,7 @@ from numpy import linspace, meshgrid
 from dgm_reactor_neutrino import IBDXsecVBO1Group
 
 
-def test_IBDXsecVBO1Group(debug_graph, test_name):
+def test_IBDXsecVBO1Group(debug_graph, test_name: str, output_path: str):
     data = {
         "format": "value",
         "state": "fixed",
@@ -69,7 +69,7 @@ def test_IBDXsecVBO1Group(debug_graph, test_name):
         colorbar=True,
         show=False,
         close=close,
-        save=f"output/{test_name}_xsec_surf.pdf",
+        save=f"{output_path}/{test_name}_xsec_surf.pdf",
     )
 
     subplots(1, 1, subplot_kw={"projection": "3d"})
@@ -80,7 +80,7 @@ def test_IBDXsecVBO1Group(debug_graph, test_name):
         colorbar=True,
         show=False,
         close=close,
-        save=f"output/{test_name}_xsec_wirec.pdf",
+        save=f"{output_path}/{test_name}_xsec_wirec.pdf",
     )
 
     subplots(1, 1, subplot_kw={"projection": "3d"})
@@ -89,7 +89,7 @@ def test_IBDXsecVBO1Group(debug_graph, test_name):
         plotoptions={"method": "wireframe"},
         show=False,
         close=close,
-        save=f"output/{test_name}_xsec_wire.pdf",
+        save=f"{output_path}/{test_name}_xsec_wire.pdf",
     )
 
     subplots(1, 1)
@@ -99,7 +99,7 @@ def test_IBDXsecVBO1Group(debug_graph, test_name):
         colorbar=True,
         show=False,
         close=close,
-        save=f"output/{test_name}_xsec_mesh.pdf",
+        save=f"{output_path}/{test_name}_xsec_mesh.pdf",
     )
 
     subplots(1, 1)
@@ -109,7 +109,7 @@ def test_IBDXsecVBO1Group(debug_graph, test_name):
         colorbar=True,
         show=False,
         close=close,
-        save=f"output/{test_name}_enu_mesh.pdf",
+        save=f"{output_path}/{test_name}_enu_mesh.pdf",
     )
 
     subplots(1, 1, subplot_kw={"projection": "3d"})
@@ -120,7 +120,7 @@ def test_IBDXsecVBO1Group(debug_graph, test_name):
         colorbar=True,
         show=False,
         close=close,
-        save=f"output/{test_name}_enu_surf.pdf",
+        save=f"{output_path}/{test_name}_enu_surf.pdf",
     )
 
     subplots(1, 1)
@@ -130,7 +130,7 @@ def test_IBDXsecVBO1Group(debug_graph, test_name):
         colorbar=True,
         show=False,
         close=close,
-        save=f"output/{test_name}_jac_mesh.pdf",
+        save=f"{output_path}/{test_name}_jac_mesh.pdf",
     )
 
     subplots(1, 1, subplot_kw={"projection": "3d"})
@@ -141,7 +141,7 @@ def test_IBDXsecVBO1Group(debug_graph, test_name):
         colorbar=True,
         show=show,
         close=True,
-        save=f"output/{test_name}_jac_surf.pdf",
+        save=f"{output_path}/{test_name}_jac_surf.pdf",
     )
 
-    savegraph(graph, f"output/{test_name}.pdf")
+    savegraph(graph, f"{output_path}/{test_name}.pdf")
