@@ -12,7 +12,7 @@ tests:
     - source venv/bin/activate
     - pip install --upgrade wheel setuptools pip
     - pip install cython
-    - pip install -e ".[dev]"
+    - pip install -e ".[test]"
     - coverage run --source=. -m pytest
     - coverage report
     - coverage xml
