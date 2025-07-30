@@ -15,7 +15,7 @@ plt.rcParams.update(
 )
 
 
-def test_IBDXsecVBO1_function(testname, show=False):
+def test_IBDXsecVBO1_function(test_name, show=False):
     NeutronLifeTime = 879.4
     NeutronMass = 939.565413
     ProtonMass = 938.272081
@@ -64,4 +64,4 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("input")
 
-    test_IBDXsecVBO1_function(testname="test_IBDXsecVBO1_function", show=True)
+    test_IBDXsecVBO1_function(test_name="test_IBDXsecVBO1_function", show=True)

@@ -13,7 +13,7 @@ _scales = {"km_to_cm": 1e5, "m_to_cm": 1e2, None: 1}
 
 @mark.parametrize("dtype", ("d", "f"))
 @mark.parametrize("scalename", tuple(_scales))
-def test_InverseSquareLaw_01(debug_graph, testname, dtype, scalename):
+def test_InverseSquareLaw_01(debug_graph, test_name, dtype, scalename):
     arrays_in = tuple(linspace(1, 10, 10, dtype=dtype) * i for i in (1, 2, 3))
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
@@ -33,4 +33,4 @@ def test_InverseSquareLaw_01(debug_graph, testname, dtype, scalename):
     )
     assert isl.tainted is False
 
-    savegraph(graph, f"output/{testname}.png")
+    savegraph(graph, f"output/{test_name}.png")
