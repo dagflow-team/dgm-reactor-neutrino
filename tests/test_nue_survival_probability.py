@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
+from dag_modelling.core.graph import Graph
+from dag_modelling.lib.common import Array
+from dag_modelling.plot.graphviz import savegraph
+from dag_modelling.plot.plot import plot_auto
 from matplotlib.pyplot import subplots
 from numpy import allclose, arcsin, cos, finfo, geomspace, sin, sqrt
 from pytest import mark
 
-from dagflow.core.graph import Graph
-from dagflow.lib.common import Array
-from dagflow.plot.graphviz import savegraph
-from dagflow.plot.plot import plot_auto
-from dgf_reactoranueosc.NueSurvivalProbability import NueSurvivalProbability, _surprobArgConversion
+from dgm_reactor_neutrino import NueSurvivalProbability
+from dgm_reactor_neutrino.nue_survival_probability import _surprobArgConversion
 
 
 @mark.parametrize("nmo", (1, -1))  # mass ordering
@@ -17,7 +18,7 @@ from dgf_reactoranueosc.NueSurvivalProbability import NueSurvivalProbability, _s
     "conversionFactor",
     (None, _surprobArgConversion, 0.9 * _surprobArgConversion),
 )
-def test_NueSurvivalProbability_01(debug_graph, testname, L, nmo, conversionFactor):
+def test_NueSurvivalProbability_01(debug_graph, test_name, L, nmo, conversionFactor, output_path: str):
     E = geomspace(1, 100, 1000)  # MeV
     DeltaMSq21 = 7.39 * 1e-5  # eV^2
     DeltaMSq32 = 2.45 * 1e-3  # eV^2
@@ -29,14 +30,24 @@ def test_NueSurvivalProbability_01(debug_graph, testname, L, nmo, conversionFact
         (in_E := Array("E", E, mode="fill")) >> surprob("E")
         (in_L := Array("L", [L], mode="fill")) >> surprob("L")
         (in_nmo := Array("nmo", [nmo], mode="fill")) >> surprob("nmo")
-        (in_Dm21 := Array("DeltaMSq21", [DeltaMSq21], mode="fill")) >> surprob("DeltaMSq21")
-        (in_Dm32 := Array("DeltaMSq32", [DeltaMSq32], mode="fill")) >> surprob("DeltaMSq32")
-        (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12], mode="fill")) >> surprob("SinSq2Theta12")
-        (in_t13 := Array("SinSq2Theta13", [SinSq2Theta13], mode="fill")) >> surprob("SinSq2Theta13")
+        (in_Dm21 := Array("DeltaMSq21", [DeltaMSq21], mode="fill")) >> surprob(
+            "DeltaMSq21"
+        )
+        (in_Dm32 := Array("DeltaMSq32", [DeltaMSq32], mode="fill")) >> surprob(
+            "DeltaMSq32"
+        )
+        (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12], mode="fill")) >> surprob(
+            "SinSq2Theta12"
+        )
+        (in_t13 := Array("SinSq2Theta13", [SinSq2Theta13], mode="fill")) >> surprob(
+            "SinSq2Theta13"
+        )
         if conversionFactor is not None:
-            (in_conversion := Array("surprobArgConversion", [conversionFactor], mode="fill")) >> surprob(
-                "surprobArgConversion"
-            )
+            (
+                in_conversion := Array(
+                    "surprobArgConversion", [conversionFactor], mode="fill"
+                )
+            ) >> surprob("surprobArgConversion")
         else:
             in_conversion = None
     if conversionFactor is None:
@@ -54,7 +65,10 @@ def test_NueSurvivalProbability_01(debug_graph, testname, L, nmo, conversionFact
         res = (
             1
             - SinSq2Theta13
-            * (_SinSqTheta12 * sin(_DeltaMSq32 * tmp) ** 2 + _CosSqTheta12 * sin(_DeltaMSq31 * tmp) ** 2)
+            * (
+                _SinSqTheta12 * sin(_DeltaMSq32 * tmp) ** 2
+                + _CosSqTheta12 * sin(_DeltaMSq31 * tmp) ** 2
+            )
             - SinSq2Theta12 * _CosQuTheta13 * sin(DeltaMSq21 * tmp) ** 2
         )
         return res
@@ -71,7 +85,7 @@ def test_NueSurvivalProbability_01(debug_graph, testname, L, nmo, conversionFact
         filter_kw={"masked_value": 0},
         show=False,
         close=True,
-        save=f"output/{testname}_plot.pdf",
+        save=f"{output_path}/{test_name}_plot.pdf",
     )
 
     nmo *= -1
@@ -131,4 +145,4 @@ def test_NueSurvivalProbability_01(debug_graph, testname, L, nmo, conversionFact
         assert allclose(surprob.outputs[0].data, res, rtol=0, atol=atol)
         assert surprob.tainted is False
 
-    savegraph(graph, f"output/{testname}.png")
+    savegraph(graph, f"{output_path}/{test_name}.png")

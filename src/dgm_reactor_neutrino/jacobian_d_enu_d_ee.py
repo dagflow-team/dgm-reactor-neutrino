@@ -2,24 +2,22 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from numba import njit
-from numpy import sqrt
-
-from dagflow.core.input_strategy import AddNewInputAddNewOutput
-from dagflow.core.node import Node
-from dagflow.core.type_functions import (
+from dag_modelling.core.input_strategy import AddNewInputAddNewOutput
+from dag_modelling.core.node import Node
+from dag_modelling.core.type_functions import (
     assign_axes_from_inputs_to_outputs,
     check_dimension_of_inputs,
     check_inputs_equivalence,
     copy_from_inputs_to_outputs,
 )
+from numba import njit
+from numpy import sqrt
 
 if TYPE_CHECKING:
+    from dag_modelling.core.input import Input
+    from dag_modelling.core.output import Output
     from numpy import double
     from numpy.typing import NDArray
-
-    from dagflow.core.input import Input
-    from dagflow.core.output import Output
 
 
 class Jacobian_dEnu_dEe(Node):
@@ -49,8 +47,12 @@ class Jacobian_dEnu_dEe(Node):
     _input_energy_type: Literal["ee", "edep"]
     _use_edep: bool
 
-    def __init__(self, name, *args, input_energy: Literal["ee", "edep"] = "ee", **kwargs):
-        super().__init__(name, *args, **kwargs, input_strategy=AddNewInputAddNewOutput())
+    def __init__(
+        self, name, *args, input_energy: Literal["ee", "edep"] = "ee", **kwargs
+    ):
+        super().__init__(
+            name, *args, **kwargs, input_strategy=AddNewInputAddNewOutput()
+        )
 
         self._input_energy_type = input_energy
         match input_energy:
@@ -100,7 +102,9 @@ class Jacobian_dEnu_dEe(Node):
         """A output takes this function to determine the dtype and shape."""
         check_dimension_of_inputs(self, slice(0, 3), 2)
         check_inputs_equivalence(self, slice(0, 3))
-        copy_from_inputs_to_outputs(self, self._input_energy_type, "result", edges=False, meshes=False)
+        copy_from_inputs_to_outputs(
+            self, self._input_energy_type, "result", edges=False, meshes=False
+        )
         assign_axes_from_inputs_to_outputs(
             self,
             (self._input_energy_type, "costheta"),

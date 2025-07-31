@@ -3,7 +3,7 @@
 from matplotlib import pyplot as plt
 from numpy import linspace, meshgrid, zeros_like
 
-from dgf_reactoranueosc.IBDXsecVBO1 import _ibdxsecO1
+from dgm_reactor_neutrino.ibd_xsec_vb_o1 import _ibdxsecO1
 
 plt.rcParams.update(
     {
@@ -15,7 +15,7 @@ plt.rcParams.update(
 )
 
 
-def test_IBDXsecVBO1_function(testname, show=False):
+def test_IBDXsecVBO1_function(test_name, show=False):
     NeutronLifeTime = 879.4
     NeutronMass = 939.565413
     ProtonMass = 938.272081
@@ -64,4 +64,4 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("input")
 
-    test_IBDXsecVBO1_function(testname="test_IBDXsecVBO1_function", show=True)
+    test_IBDXsecVBO1_function(test_name="test_IBDXsecVBO1_function", show=True)

@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from dag_modelling.lib.abstract import OneToOneNode
 from numba import njit
 from numpy import multiply, pi
-
-from dagflow.lib.abstract import OneToOneNode
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -46,18 +45,24 @@ class InverseSquareLaw(OneToOneNode):
         self._labels.setdefault("mark", "1/(4πL²)")
         self._scale = _scales[scale]
 
-        self._functions_dict.update({"normal": self._function_normal, "scaled": self._function_scaled})
+        self._functions_dict.update(
+            {"normal": self._function_normal, "scaled": self._function_scaled}
+        )
         if scale is None or self._scale == 1.0:
             self.function = self._function_normal
         else:
             self.function = self._function_scaled
 
     def _function_normal(self):
-        for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
+        for indata, outdata in zip(
+            self.inputs.iter_data(), self.outputs.iter_data_unsafe()
+        ):
             _inv_sq_law(indata.ravel(), outdata.ravel())
 
     def _function_scaled(self):
         scale = self._scale
-        for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
+        for indata, outdata in zip(
+            self.inputs.iter_data(), self.outputs.iter_data_unsafe()
+        ):
             _inv_sq_law(indata.ravel(), outdata.ravel())
             multiply(outdata, scale, out=outdata)
