@@ -85,7 +85,7 @@ class IBDXsecSV(Node):
         _ibdxsec(
             EnuIn = self._EnuIn.data,
             CosThetaIn = self._CosThetaIn.data,
-            Result = self._Result.data,
+            Result = self._Result._data,
             CosOfCab = self._CosOfCab.data[0],
             NeutronMass = self._NeutronMass.data[0],
             ProtonMass = self._ProtonMass.data[0],

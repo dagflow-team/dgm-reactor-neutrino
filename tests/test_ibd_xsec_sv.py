@@ -47,6 +47,7 @@ def test_IBDXsecSV(debug_graph, test_name: str, output_path: str):
     ctheta1 = linspace(-1, 1, 5)
     enu2, ctheta2 = meshgrid(enu1, ctheta1, indexing="ij")
     ee2, _ = meshgrid(ee1, ctheta1, indexing="ij")
+
     with Graph(debug=debug_graph, close_on_exit=True) as graph:
         storage = load_parameters(data)
 
@@ -68,6 +69,11 @@ def test_IBDXsecSV(debug_graph, test_name: str, output_path: str):
         (ee, ctheta) >> eetoenu
         (eetoenu, ee, ctheta) >> jacobian
         (eetoenu, ctheta) >> ibdxsec_ee
+
+    csc_enu = ibdxsec_enu.get_data()
+    csc_ee = ibdxsec_ee.get_data()
+    enu = eetoenu.get_data()
+    jac = jacobian.get_data()
 
     subplots(1, 1)
 
