@@ -20,7 +20,7 @@ from dag_modelling.core.type_functions import (
 )
 
 
-class IBDXsecSVO1(Node):
+class IBDXsecSV(Node):
     """Inverse beta decay cross section by Strumia and Vissani."""
 
     __slots__ = (
