@@ -121,7 +121,7 @@ _constant_aplha = constant("fine-structure constant")
 _constant_g_Fermi = constant("Fermi coupling constant")
 
 
-@njit(cache=True)
+# @njit(cache=True)
 def _ibdxsec(
     *,
     EnuIn: NDArray[float],
@@ -220,7 +220,7 @@ def _ibdxsec(
 
         result[i] = dsigma_dcos * (1 + DeltaIn)
 
-@njit(cache=True)
+# @njit(cache=True)
 def __coeff_A_B_C(
 
     *,
