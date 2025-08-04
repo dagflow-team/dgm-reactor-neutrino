@@ -21,7 +21,8 @@ from dag_modelling.core.type_functions import (
 
 
 class IBDXsecSV(Node):
-    """Inverse beta decay cross section by Strumia and Vissani."""
+    """Inverse beta decay cross
+    section by Strumia and Vissani."""
 
     __slots__ = (
         "_EnuIn",
@@ -121,9 +122,8 @@ _constant_aplha = constant("fine-structure constant")
 _constant_g_Fermi = constant("Fermi coupling constant")
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def _ibdxsec(
-    *,
     EnuIn: NDArray[float],
     CosThetaIn:NDArray[float],
     Result: NDArray[float],
@@ -220,10 +220,8 @@ def _ibdxsec(
 
         result[i] = dsigma_dcos * (1 + DeltaIn)
 
-# @njit(cache=True)
+@njit(cache=True)
 def __coeff_A_B_C(
-
-    *,
     Enu: float,
     Ee: float,
     NeutronMass: float,
