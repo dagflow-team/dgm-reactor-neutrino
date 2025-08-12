@@ -1,14 +1,13 @@
-from numpy import linspace, meshgrid
-from matplotlib.pyplot import subplots
-
-from dgm_reactor_neutrino.ibd_xsec_sv import IBDXsecSV
-from dgm_reactor_neutrino import EeToEnu, Jacobian_dEnu_dEe
-from dag_modelling.core.graph import Graph
 from dag_modelling.bundles.load_parameters import load_parameters
+from dag_modelling.core.graph import Graph
 from dag_modelling.lib.common import Array
-from dag_modelling.plot.plot import plot_auto
 from dag_modelling.plot.graphviz import savegraph
+from dag_modelling.plot.plot import plot_auto
+from matplotlib.pyplot import subplots
+from numpy import linspace, meshgrid
 
+from dgm_reactor_neutrino import EeToEnu, Jacobian_dEnu_dEe
+from dgm_reactor_neutrino.ibd_xsec_sv import IBDXsecSV
 
 
 def test_IBDXsecSV(debug_graph, test_name: str, output_path: str):
@@ -16,7 +15,7 @@ def test_IBDXsecSV(debug_graph, test_name: str, output_path: str):
     data = {
         "format": "value",
         "state": "fixed",
-        "parameters":{
+        "parameters": {
             "NeutronMass": 939.565413,
             "ProtonMass": 938.272081,
             "ElectronMass": 0.5109989461,
@@ -24,11 +23,11 @@ def test_IBDXsecSV(debug_graph, test_name: str, output_path: str):
             "CosOfCab": 0.9746,
             "xi": 3.706,
             "g1_0": -1.270,
-            "MAsq": 1.0 * 10 ** 6,
-            "MVsq": 0.71 * 10 ** 6,
-            "M_Z": 80.385 * 1.0e3
+            "MAsq": 1.0 * 10**6,
+            "MVsq": 0.71 * 10**6,
+            "M_Z": 80.385 * 1.0e3,
         },
-        "labels":{
+        "labels": {
             "NeutronMass": "neutron mass, MeV",
             "ProtonMass": "proton mass, MeV",
             "ElectronMass": "electron mass, MeV",
@@ -38,8 +37,8 @@ def test_IBDXsecSV(debug_graph, test_name: str, output_path: str):
             "g1_0": "axial-vector coupling constant g at param t equal zero",
             "MAsq": "axial mass in square, MeV^2",
             "MVsq": "vector mass in square, MeV^2",
-            "M_Z": "Z-boson mass, MeV"
-        }
+            "M_Z": "Z-boson mass, MeV",
+        },
     }
 
     enu1 = linspace(0, 12.0, 121)
@@ -87,11 +86,4 @@ def test_IBDXsecSV(debug_graph, test_name: str, output_path: str):
         save=f"{output_path}/{test_name}_plot.pdf",
     )
 
-    savegraph(graph, f"{output_path}/{test_name}.pdf")
-
-
-
-
-
-
-
+    savegraph(graph, f"{output_path}/{test_name}.dot")
