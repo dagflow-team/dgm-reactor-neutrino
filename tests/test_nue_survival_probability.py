@@ -13,40 +13,46 @@ from dgm_reactor_neutrino.nue_survival_probability import _surprobArgConversion
 
 
 @mark.parametrize("nmo", (1, -1))  # mass ordering
-@mark.parametrize("L", (2, 52, 180))  # km
+@mark.parametrize(
+    "L,leading_mass_splitting_3l_name", ((2, "DeltaMSq32"), (52, "DeltaMSq31"), (180, "DeltaMSq32"))
+)  # km
 @mark.parametrize(
     "conversionFactor",
     (None, _surprobArgConversion, 0.9 * _surprobArgConversion),
 )
-def test_NueSurvivalProbability_01(debug_graph, test_name, L, nmo, conversionFactor, output_path: str):
+def test_NueSurvivalProbability_01(
+    debug_graph,
+    test_name,
+    L,
+    leading_mass_splitting_3l_name,
+    nmo,
+    conversionFactor,
+    output_path: str,
+):
     E = geomspace(1, 100, 1000)  # MeV
     DeltaMSq21 = 7.39 * 1e-5  # eV^2
-    DeltaMSq32 = 2.45 * 1e-3  # eV^2
+    DeltaMSq3lAbs = 2.45 * 1e-3  # eV^2
     SinSq2Theta12 = 3.1 * 1e-1  # [-]
     SinSq2Theta13 = 2.241 * 1e-2  # [-]
+    is_dm32_leading = leading_mass_splitting_3l_name == "DeltaMSq32"
+    is_dm31_leading = leading_mass_splitting_3l_name == "DeltaMSq31"
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
-        surprob = NueSurvivalProbability("P(ee)")
+        surprob = NueSurvivalProbability(
+            "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name
+        )
         (in_E := Array("E", E, mode="fill")) >> surprob("E")
         (in_L := Array("L", [L], mode="fill")) >> surprob("L")
         (in_nmo := Array("nmo", [nmo], mode="fill")) >> surprob("nmo")
-        (in_Dm21 := Array("DeltaMSq21", [DeltaMSq21], mode="fill")) >> surprob(
-            "DeltaMSq21"
+        (in_Dm21 := Array("DeltaMSq21", [DeltaMSq21], mode="fill")) >> surprob("DeltaMSq21")
+        (in_Dm3l := Array(leading_mass_splitting_3l_name, [DeltaMSq3lAbs], mode="fill")) >> surprob(
+            leading_mass_splitting_3l_name
         )
-        (in_Dm32 := Array("DeltaMSq32", [DeltaMSq32], mode="fill")) >> surprob(
-            "DeltaMSq32"
-        )
-        (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12], mode="fill")) >> surprob(
-            "SinSq2Theta12"
-        )
-        (in_t13 := Array("SinSq2Theta13", [SinSq2Theta13], mode="fill")) >> surprob(
-            "SinSq2Theta13"
-        )
+        (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12], mode="fill")) >> surprob("SinSq2Theta12")
+        (in_t13 := Array("SinSq2Theta13", [SinSq2Theta13], mode="fill")) >> surprob("SinSq2Theta13")
         if conversionFactor is not None:
             (
-                in_conversion := Array(
-                    "surprobArgConversion", [conversionFactor], mode="fill"
-                )
+                in_conversion := Array("surprobArgConversion", [conversionFactor], mode="fill")
             ) >> surprob("surprobArgConversion")
         else:
             in_conversion = None
@@ -55,8 +61,12 @@ def test_NueSurvivalProbability_01(debug_graph, test_name, L, nmo, conversionFac
 
     def surprob_fcn() -> float:
         tmp = L * conversionFactor / 4.0 / E
-        _DeltaMSq32 = nmo * DeltaMSq32  # Δm²₃₂ = α*|Δm²₃₂|
-        _DeltaMSq31 = nmo * DeltaMSq32 + DeltaMSq21  # Δm²₃₁ = α*|Δm²₃₂| + Δm²₂₁
+        _DeltaMSq31 = (
+            nmo * DeltaMSq3lAbs + DeltaMSq21 * is_dm32_leading
+        )  # Δm²₃₁ = α*|Δm²₃ₗ| + β*Δm²₂₁
+        _DeltaMSq32 = (
+            nmo * DeltaMSq3lAbs - DeltaMSq21 * is_dm31_leading
+        )  # Δm²₃₂ = α*|Δm²₃ₗ| - β*Δm²₂₁
         theta12 = 0.5 * arcsin(sqrt(SinSq2Theta12))
         theta13 = 0.5 * arcsin(sqrt(SinSq2Theta13))
         _SinSqTheta12 = sin(theta12) ** 2  # sin²θ₁₂
@@ -102,8 +112,8 @@ def test_NueSurvivalProbability_01(debug_graph, test_name, L, nmo, conversionFac
     assert allclose(surprob.outputs[0].data, res, rtol=0, atol=atol)
     assert surprob.tainted is False
 
-    DeltaMSq32 *= 0.9
-    in_Dm32.outputs[0].set(DeltaMSq32)
+    DeltaMSq3lAbs *= 0.9
+    in_Dm3l.outputs[0].set(DeltaMSq3lAbs)
     assert surprob.tainted is True
     res = surprob_fcn()
     assert allclose(surprob.outputs[0].data, res, rtol=0, atol=atol)
