@@ -40,11 +40,12 @@ def _sur_prob(
     surprobArgConversion: NDArray[double],
 ) -> None:
     _DeltaMSq21 = DeltaMSq21[0]
-    _DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0] # Δm²₃₁ = α*|Δm²₃ₗ|
-    _DeltaMSq32 = _DeltaMSq31 - _DeltaMSq21 # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
     if is_dm32_leading:
         _DeltaMSq32 = nmo[0] * DeltaMSq3lAbs[0] # Δm²₃₂ = α*|Δm²₃ₗ|
         _DeltaMSq31 = _DeltaMSq32 + _DeltaMSq21 # Δm²₃₁ = Δm²₃₂ + Δm²₂₁
+    else:
+        _DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0] # Δm²₃₁ = α*|Δm²₃ₗ|
+        _DeltaMSq32 = _DeltaMSq31 - _DeltaMSq21 # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
 
     _SinSq2Theta13 = SinSq2Theta13[0]
     _SinSq2Theta12 = SinSq2Theta12[0]
