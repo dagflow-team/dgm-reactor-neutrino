@@ -75,7 +75,6 @@ class NueSurvivalProbability(Node):
         `SinSq2Theta12`: sin²2θ₁₂
         `SinSq2Theta13`: sin²2θ₁₃
         `DeltaMSq21`: Δm²₂₁
-        `switcher_dm_32_31`: literal for |Δm²₃₂| or |Δm²₃₁|
         `nmo`: α - the mass ordering constant
 
     optional inputs:
