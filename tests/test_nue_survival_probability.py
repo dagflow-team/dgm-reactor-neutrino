@@ -21,7 +21,13 @@ from dgm_reactor_neutrino.nue_survival_probability import _surprobArgConversion
     (None, _surprobArgConversion, 0.9 * _surprobArgConversion),
 )
 def test_NueSurvivalProbability_01(
-    debug_graph, test_name, L, leading_mass_splitting_3l_name, nmo, conversionFactor, output_path: str
+    debug_graph,
+    test_name,
+    L,
+    leading_mass_splitting_3l_name,
+    nmo,
+    conversionFactor,
+    output_path: str,
 ):
     E = geomspace(1, 100, 1000)  # MeV
     DeltaMSq21 = 7.39 * 1e-5  # eV^2
@@ -32,7 +38,9 @@ def test_NueSurvivalProbability_01(
     is_dm31_leading = leading_mass_splitting_3l_name == "DeltaMSq31"
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
-        surprob = NueSurvivalProbability("P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name)
+        surprob = NueSurvivalProbability(
+            "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name
+        )
         (in_E := Array("E", E, mode="fill")) >> surprob("E")
         (in_L := Array("L", [L], mode="fill")) >> surprob("L")
         (in_nmo := Array("nmo", [nmo], mode="fill")) >> surprob("nmo")
@@ -53,8 +61,12 @@ def test_NueSurvivalProbability_01(
 
     def surprob_fcn() -> float:
         tmp = L * conversionFactor / 4.0 / E
-        _DeltaMSq31 = nmo * DeltaMSq3lAbs + DeltaMSq21 * is_dm32_leading  # Δm²₃₁ = α*|Δm²₃ₗ| + β*Δm²₂₁
-        _DeltaMSq32 = nmo * DeltaMSq3lAbs - DeltaMSq21 * is_dm31_leading  # Δm²₃₂ = α*|Δm²₃ₗ| - β*Δm²₂₁
+        _DeltaMSq31 = (
+            nmo * DeltaMSq3lAbs + DeltaMSq21 * is_dm32_leading
+        )  # Δm²₃₁ = α*|Δm²₃ₗ| + β*Δm²₂₁
+        _DeltaMSq32 = (
+            nmo * DeltaMSq3lAbs - DeltaMSq21 * is_dm31_leading
+        )  # Δm²₃₂ = α*|Δm²₃ₗ| - β*Δm²₂₁
         theta12 = 0.5 * arcsin(sqrt(SinSq2Theta12))
         theta13 = 0.5 * arcsin(sqrt(SinSq2Theta13))
         _SinSqTheta12 = sin(theta12) ** 2  # sin²θ₁₂

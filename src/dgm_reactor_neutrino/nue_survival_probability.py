@@ -41,11 +41,11 @@ def _sur_prob(
 ) -> None:
     _DeltaMSq21 = DeltaMSq21[0]
     if is_dm32_leading:
-        _DeltaMSq32 = nmo[0] * DeltaMSq3lAbs[0] # Δm²₃₂ = α*|Δm²₃ₗ|
-        _DeltaMSq31 = _DeltaMSq32 + _DeltaMSq21 # Δm²₃₁ = Δm²₃₂ + Δm²₂₁
+        _DeltaMSq32 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₂ = α*|Δm²₃ₗ|
+        _DeltaMSq31 = _DeltaMSq32 + _DeltaMSq21  # Δm²₃₁ = Δm²₃₂ + Δm²₂₁
     else:
-        _DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0] # Δm²₃₁ = α*|Δm²₃ₗ|
-        _DeltaMSq32 = _DeltaMSq31 - _DeltaMSq21 # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
+        _DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₁ = α*|Δm²₃ₗ|
+        _DeltaMSq32 = _DeltaMSq31 - _DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
 
     _SinSq2Theta13 = SinSq2Theta13[0]
     _SinSq2Theta12 = SinSq2Theta12[0]
@@ -199,7 +199,9 @@ class NueSurvivalProbability(Node):
         self._SinSq2Theta12 = self.inputs["SinSq2Theta12"]._data
         self._SinSq2Theta13 = self.inputs["SinSq2Theta13"]._data
         self._DeltaMSq21 = self.inputs["DeltaMSq21"]._data
-        self._DeltaMSq3lAbs = self.inputs["DeltaMSq32" if self._is_dm32_leading else "DeltaMSq31"]._data
+        self._DeltaMSq3lAbs = self.inputs[
+            "DeltaMSq32" if self._is_dm32_leading else "DeltaMSq31"
+        ]._data
         self._nmo = self.inputs["nmo"]._data
 
         if conversion_input := self.inputs.get("surprobArgConversion"):
