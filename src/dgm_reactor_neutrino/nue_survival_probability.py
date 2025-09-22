@@ -159,6 +159,7 @@ class NueSurvivalProbability(Node):
                 "L",
                 "SinSq2Theta12",
                 "SinSq2Theta13",
+                "DeltaMSq21",
                 "DeltaMSq32" if self._is_dm32_leading else "DeltaMSq31",
                 "nmo",
             ),

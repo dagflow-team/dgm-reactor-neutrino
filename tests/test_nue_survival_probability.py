@@ -37,7 +37,7 @@ def test_NueSurvivalProbability_01(
         (in_L := Array("L", [L], mode="fill")) >> surprob("L")
         (in_nmo := Array("nmo", [nmo], mode="fill")) >> surprob("nmo")
         (in_Dm21 := Array("DeltaMSq21", [DeltaMSq21], mode="fill")) >> surprob("DeltaMSq21")
-        (in_DmLarge := Array(leading_mass_splitting_3l_name, [DeltaMSq3lAbs], mode="fill")) >> surprob(
+        (in_Dm3l := Array(leading_mass_splitting_3l_name, [DeltaMSq3lAbs], mode="fill")) >> surprob(
             leading_mass_splitting_3l_name
         )
         (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12], mode="fill")) >> surprob("SinSq2Theta12")
@@ -101,7 +101,7 @@ def test_NueSurvivalProbability_01(
     assert surprob.tainted is False
 
     DeltaMSq3lAbs *= 0.9
-    in_DmLarge.outputs[0].set(DeltaMSq3lAbs)
+    in_Dm3l.outputs[0].set(DeltaMSq3lAbs)
     assert surprob.tainted is True
     res = surprob_fcn()
     assert allclose(surprob.outputs[0].data, res, rtol=0, atol=atol)
