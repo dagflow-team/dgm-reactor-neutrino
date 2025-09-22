@@ -75,7 +75,7 @@ class NueSurvivalProbability(Node):
         `SinSq2Theta12`: sin²2θ₁₂
         `SinSq2Theta13`: sin²2θ₁₃
         `DeltaMSq21`: Δm²₂₁
-        `DeltaMSq32` or `DeltaMSq31`: Δm²₃₂ or Δm²₃₁ depending on `leading_mass_splitting_3l_name`
+        `DeltaMSq32` or `DeltaMSq31`: |Δm²₃₂| or |Δm²₃₁| depending on `leading_mass_splitting_3l_name`
         `nmo`: α - the mass ordering constant
 
     optional inputs:
