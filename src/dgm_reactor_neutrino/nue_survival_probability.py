@@ -34,13 +34,19 @@ def _sur_prob(
     SinSq2Theta12: NDArray[double],
     SinSq2Theta13: NDArray[double],
     DeltaMSq21: NDArray[double],
-    DeltaMSq32: NDArray[double],
+    DeltaMSq3lAbs: NDArray[double],
+    is_dm32_leading: float,
     nmo: NDArray[double],
     surprobArgConversion: NDArray[double],
 ) -> None:
     _DeltaMSq21 = DeltaMSq21[0]
-    _DeltaMSq32 = nmo[0] * DeltaMSq32[0]  # Δm²₃₂ = α*|Δm²₃₂|
-    _DeltaMSq31 = nmo[0] * DeltaMSq32[0] + _DeltaMSq21  # Δm²₃₁ = α*|Δm²₃₂| + Δm²₂₁
+    if is_dm32_leading:
+        _DeltaMSq32 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₂ = α*|Δm²₃ₗ|
+        _DeltaMSq31 = _DeltaMSq32 + _DeltaMSq21  # Δm²₃₁ = Δm²₃₂ + Δm²₂₁
+    else:
+        _DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₁ = α*|Δm²₃ₗ|
+        _DeltaMSq32 = _DeltaMSq31 - _DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
+
     _SinSq2Theta13 = SinSq2Theta13[0]
     _SinSq2Theta12 = SinSq2Theta12[0]
     _SinSqTheta12 = 0.5 * (1 - sqrt(1 - _SinSq2Theta12))  # sin²θ₁₂
@@ -56,8 +62,7 @@ def _sur_prob(
         Sin21 = sin(_DeltaMSq21 * L4E)
         out[i] = (
             1.0
-            - _SinSq2Theta13
-            * (_SinSqTheta12 * Sin32 * Sin32 + _CosSqTheta12 * Sin31 * Sin31)
+            - _SinSq2Theta13 * (_SinSqTheta12 * Sin32 * Sin32 + _CosSqTheta12 * Sin31 * Sin31)
             - _SinSq2Theta12 * _CosQuTheta13 * Sin21 * Sin21
         )
 
@@ -70,7 +75,7 @@ class NueSurvivalProbability(Node):
         `SinSq2Theta12`: sin²2θ₁₂
         `SinSq2Theta13`: sin²2θ₁₃
         `DeltaMSq21`: Δm²₂₁
-        `DeltaMSq32`: |Δm²₃₂|
+        `DeltaMSq32` or `DeltaMSq31`: |Δm²₃₂| or |Δm²₃₁| depending on `leading_mass_splitting_3l_name`
         `nmo`: α - the mass ordering constant
 
     optional inputs:
@@ -92,7 +97,8 @@ class NueSurvivalProbability(Node):
         "_SinSq2Theta12",
         "_SinSq2Theta13",
         "_DeltaMSq21",
-        "_DeltaMSq32",
+        "_DeltaMSq3lAbs",
+        "_is_dm32_leading",
         "_nmo",
         "_surprob_arg_conversion_factor",
     )
@@ -102,13 +108,22 @@ class NueSurvivalProbability(Node):
     _L: NDArray
     _nmo: NDArray
     _DeltaMSq21: NDArray
-    _DeltaMSq32: NDArray
+    _DeltaMSq3lAbs: NDArray
     _SinSq2Theta12: NDArray
     _SinSq2Theta13: NDArray
     _surprob_arg_conversion_factor: NDArray
     _result: NDArray
 
-    def __init__(self, *args, distance_unit: Literal["km", "m"] = "km", **kwargs):
+    def __init__(
+        self,
+        *args,
+        leading_mass_splitting_3l_name: Literal["DeltaMSq31", "DeltaMSq32"],
+        distance_unit: Literal["km", "m"] = "km",
+        **kwargs,
+    ):
+        if leading_mass_splitting_3l_name not in {"DeltaMSq31", "DeltaMSq32"}:
+            raise RuntimeError(f"Do not support switch: {leading_mass_splitting_3l_name=}")
+
         super().__init__(
             *args,
             **kwargs,
@@ -117,19 +132,20 @@ class NueSurvivalProbability(Node):
                 "L",
                 "SinSq2Theta13",
                 "SinSq2Theta12",
-                "DeltaMSq32",
+                leading_mass_splitting_3l_name,
                 "DeltaMSq21",
                 "nmo",
                 "surprobArgConversion",
             ),
         )
+        self._is_dm32_leading = leading_mass_splitting_3l_name == "DeltaMSq32"
         self._labels.setdefault("mark", "P(ee)")
         self._add_pair("E", "result")
         self._add_input("L", positional=False)
         self._add_input("SinSq2Theta12", positional=False)
         self._add_input("SinSq2Theta13", positional=False)
         self._add_input("DeltaMSq21", positional=False)
-        self._add_input("DeltaMSq32", positional=False)
+        self._add_input(leading_mass_splitting_3l_name, positional=False)
         self._add_input("nmo", positional=False)
         try:
             self._baseline_scale = {"km": 1, "m": 1.0e-3}[distance_unit]
@@ -145,7 +161,7 @@ class NueSurvivalProbability(Node):
                 "SinSq2Theta12",
                 "SinSq2Theta13",
                 "DeltaMSq21",
-                "DeltaMSq32",
+                "DeltaMSq32" if self._is_dm32_leading else "DeltaMSq31",
                 "nmo",
             ),
             (1,),
@@ -168,7 +184,8 @@ class NueSurvivalProbability(Node):
             self._SinSq2Theta12,
             self._SinSq2Theta13,
             self._DeltaMSq21,
-            self._DeltaMSq32,
+            self._DeltaMSq3lAbs,
+            self._is_dm32_leading,
             self._nmo,
             self._surprob_arg_conversion_factor,
         )
@@ -183,7 +200,9 @@ class NueSurvivalProbability(Node):
         self._SinSq2Theta12 = self.inputs["SinSq2Theta12"]._data
         self._SinSq2Theta13 = self.inputs["SinSq2Theta13"]._data
         self._DeltaMSq21 = self.inputs["DeltaMSq21"]._data
-        self._DeltaMSq32 = self.inputs["DeltaMSq32"]._data
+        self._DeltaMSq3lAbs = self.inputs[
+            "DeltaMSq32" if self._is_dm32_leading else "DeltaMSq31"
+        ]._data
         self._nmo = self.inputs["nmo"]._data
 
         if conversion_input := self.inputs.get("surprobArgConversion"):
