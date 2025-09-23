@@ -117,7 +117,7 @@ class NueSurvivalProbability(Node):
     def __init__(
         self,
         *args,
-        leading_mass_splitting_3l_name: Literal["DeltaMSq31", "DeltaMSq32"] = "DeltaMSq32",
+        leading_mass_splitting_3l_name: Literal["DeltaMSq31", "DeltaMSq32"],
         distance_unit: Literal["km", "m"] = "km",
         **kwargs,
     ):
