@@ -78,7 +78,7 @@ class IBDXsecSV(Node):
         self._const_g1_0 = self._add_input("g1_0", positional=False, keyword=True)
         self._const_masq = self._add_input("MAsq", positional=False, keyword=True)
         self._const_mvsq = self._add_input("MVsq", positional=False, keyword=True)
-        self._const_mz = self._add_input("M_Z", positional=False, keyword=True)
+        self._const_mz = self._add_input("MZ", positional=False, keyword=True)
 
     def _function(self):
         _ibdxsec(
@@ -94,7 +94,7 @@ class IBDXsecSV(Node):
             g1_0=self._const_g1_0.data[0],
             MAsq=self._const_masq.data[0],
             MVsq=self._const_mvsq.data[0],
-            M_Z=self._const_mz.data[0],
+            MZ=self._const_mz.data[0],
         )
 
     def _type_function(self) -> None:
@@ -133,7 +133,7 @@ def _ibdxsec(
     g1_0: double,
     MAsq: double,
     MVsq: double,
-    M_Z: double,
+    MZ: double,
 ):
     NeutronMass2 = NeutronMass * NeutronMass
     ProtonMass2 = ProtonMass * ProtonMass
@@ -151,7 +151,8 @@ def _ibdxsec(
     J2MeV = 1.0 / MeV2J
     MeV2cm = power(_constant_hbar * _constant_c * J2MeV, 2) * 1.0e4
 
-    DeltaIn = _constant_aplha / pi * (2 * log(M_Z / ProtonMass) + 0.55)
+    DeltaIn = _constant_aplha / pi * (2 * log(MZ / ProtonMass) + 0.55)
+    DeltaIn1 = DeltaIn + 1
 
     result = Result.ravel()
     for i, (Enu, CosTheta) in enumerate(zip(EnuIn.ravel(), CosThetaIn.ravel())):
@@ -159,23 +160,27 @@ def _ibdxsec(
             result[i] = 0.0
             continue
 
-        if CosTheta < -1:
-            CosTheta = -1
+        if CosTheta < -1.0:
+            CosTheta = -1.0
 
-        if CosTheta > 1:
-            CosTheta = 1
+        if CosTheta > 1.0:
+            CosTheta = 1.0
 
         eps = Enu / ProtonMass
 
-        eps1 = 1 + eps
+        eps1 = 1.0 + eps
 
-        kappa = eps1**2 - (eps * CosTheta) ** 2
-        if (Enu - delta) ** 2 - ElectronMass2 * kappa <= 0:
+        kappa = eps1*eps1 - (eps * CosTheta) ** 2
+
+        EnuDelta = Enu - delta
+        EnuDelta2 = EnuDelta * EnuDelta
+
+        if EnuDelta2 - ElectronMass2 * kappa <= 0.0:
             result[i] = 0.0
             continue
 
         Ee = (
-            (Enu - delta) * eps1 + eps * CosTheta * sqrt((Enu - delta) ** 2 - ElectronMass2 * kappa)
+            EnuDelta * eps1 + eps * CosTheta * sqrt(EnuDelta2 - ElectronMass2 * kappa)
         ) / kappa
 
         s = ProtonMass2 + 2 * ProtonMass * Enu
@@ -201,6 +206,10 @@ def _ibdxsec(
 
         dsigma_dE = 2 * ProtonMass * dsigma_dt
 
+        if Ee <= ElectronMass:
+            result[i] = 0.0
+            continue
+
         pe = sqrt(Ee * Ee - ElectronMass2)
 
         dsigma_dcos = (
@@ -209,7 +218,7 @@ def _ibdxsec(
 
         # Delta = _constant_aplha / pi * (6 + 1.5 * log(ProtonMass/(2 * Ee)) + 1.2 * (ProtonMass/ Ee) ** 1.5)
 
-        result[i] = dsigma_dcos * (1 + DeltaIn)
+        result[i] = dsigma_dcos * DeltaIn1
 
 
 @njit(cache=True)
@@ -224,7 +233,7 @@ def __coeff_A_B_C(
     g1_0: double,
     MAsq: double,
     MVsq: double,
-) -> tuple:  # (A, B, C)
+) -> tuple [double, double, double]:
 
     NeutronMass2 = NeutronMass * NeutronMass
     ProtonMass2 = ProtonMass * ProtonMass
