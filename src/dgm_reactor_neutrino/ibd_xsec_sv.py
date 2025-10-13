@@ -123,19 +123,19 @@ _constant_g_Fermi = constant("Fermi coupling constant")
 
 @njit(cache=True)
 def _ibdxsec(
-    EnuIn: NDArray[double],
-    CosThetaIn: NDArray[double],
-    Result: NDArray[double],
-    NeutronMass: double,
-    ProtonMass: double,
-    ElectronMass: double,
-    PionMass: double,
-    CosOfCab: double,
-    xi: double,
-    g1_0: double,
-    MAsq: double,
-    MVsq: double,
-    MZ: double,
+        EnuIn: NDArray[double],
+        CosThetaIn: NDArray[double],
+        Result: NDArray[double],
+        NeutronMass: float,
+        ProtonMass: float,
+        ElectronMass: float,
+        PionMass: float,
+        CosOfCab: float,
+        xi: float,
+        g1_0: float,
+        MAsq: float,
+        MVsq: float,
+        MZ: float,
 ):
     NeutronMass2 = NeutronMass * NeutronMass
     ProtonMass2 = ProtonMass * ProtonMass
@@ -172,7 +172,7 @@ def _ibdxsec(
 
         eps1 = 1.0 + eps
 
-        kappa = eps1*eps1 - (eps * CosTheta) ** 2
+        kappa = eps1 * eps1 - (eps * CosTheta) ** 2
 
         EnuDelta = Enu - delta
         EnuDelta2 = EnuDelta * EnuDelta
@@ -182,8 +182,8 @@ def _ibdxsec(
             continue
 
         Ee = (
-            EnuDelta * eps1 + eps * CosTheta * sqrt(EnuDelta2 - ElectronMass2 * kappa)
-        ) / kappa
+                     EnuDelta * eps1 + eps * CosTheta * sqrt(EnuDelta2 - ElectronMass2 * kappa)
+             ) / kappa
 
         s = ProtonMass2 + 2 * ProtonMass * Enu
         u = s - 2 * ProtonMass * (Enu + Ee) + ElectronMass2
@@ -215,8 +215,8 @@ def _ibdxsec(
         pe = sqrt(Ee * Ee - ElectronMass2)
 
         dsigma_dcos = (
-            eps * pe / (1 + eps * (1 - (Ee / pe) * CosTheta)) * dsigma_dE
-        ) * MeV2cm  # converting from Mev^-2 to cm^2
+                              eps * pe / (1 + eps * (1 - (Ee / pe) * CosTheta)) * dsigma_dE
+                      ) * MeV2cm  # converting from Mev^-2 to cm^2
 
         # Delta = _constant_aplha / pi * (6 + 1.5 * log(ProtonMass/(2 * Ee)) + 1.2 * (ProtonMass/ Ee) ** 1.5)
 
@@ -225,18 +225,17 @@ def _ibdxsec(
 
 @njit(cache=True)
 def __coeff_A_B_C(
-    Enu: double,
-    Ee: double,
-    NeutronMass: double,
-    ProtonMass: double,
-    ElectronMass2: double,
-    PionMass2: double,
-    xi: double,
-    g1_0: double,
-    MAsq: double,
-    MVsq: double,
-) -> tuple [double, double, double]:
-
+        Enu: float,
+        Ee: float,
+        NeutronMass: float,
+        ProtonMass: float,
+        ElectronMass2: float,
+        PionMass2: float,
+        xi: float,
+        g1_0: float,
+        MAsq: float,
+        MVsq: float,
+) -> tuple[float, float, float]:
     NeutronMass2 = NeutronMass * NeutronMass
     ProtonMass2 = ProtonMass * ProtonMass
 
@@ -262,29 +261,29 @@ def __coeff_A_B_C(
     g12 = g1 * g2
 
     A = (1 / 16) * (
-        (t - ElectronMass2)
-        * (
-            4 * f1sq * (4 * NucleonsMass2 + t + ElectronMass2)
-            + 4 * g1sq * (-4 * NucleonsMass2 + t + ElectronMass2)
-            + f2sq * (t * t / NucleonsMass2 + 4 * t + 4 * ElectronMass2)
-            + 4 * ElectronMass2 * t * g2sq / NucleonsMass2
-            + 8 * f12 * (2 * t + ElectronMass2)
-            + 16 * ElectronMass2 * g12
-        )
-        - DeltaNP2
-        * (
-            (4 * f1sq + t * f2sq / NucleonsMass2) * (4 * NucleonsMass2 + t - ElectronMass2)
-            + 4 * g1sq * (4 * NucleonsMass2 - t + ElectronMass2)
-            + 4 * ElectronMass2 * g2sq * (t - ElectronMass2) / NucleonsMass2
-            + 8 * f12 * (2 * t - ElectronMass2)
-            + 16 * ElectronMass2 * g12
-        )
-        - 32 * ElectronMass2 * NucleonsMass * DeltaNP * g1 * (f1 + f2)
+            (t - ElectronMass2)
+            * (
+                    4 * f1sq * (4 * NucleonsMass2 + t + ElectronMass2)
+                    + 4 * g1sq * (-4 * NucleonsMass2 + t + ElectronMass2)
+                    + f2sq * (t * t / NucleonsMass2 + 4 * t + 4 * ElectronMass2)
+                    + 4 * ElectronMass2 * t * g2sq / NucleonsMass2
+                    + 8 * f12 * (2 * t + ElectronMass2)
+                    + 16 * ElectronMass2 * g12
+            )
+            - DeltaNP2
+            * (
+                    (4 * f1sq + t * f2sq / NucleonsMass2) * (4 * NucleonsMass2 + t - ElectronMass2)
+                    + 4 * g1sq * (4 * NucleonsMass2 - t + ElectronMass2)
+                    + 4 * ElectronMass2 * g2sq * (t - ElectronMass2) / NucleonsMass2
+                    + 8 * f12 * (2 * t - ElectronMass2)
+                    + 16 * ElectronMass2 * g12
+            )
+            - 32 * ElectronMass2 * NucleonsMass * DeltaNP * g1 * (f1 + f2)
     )
 
     B = (1 / 16) * (
-        16 * t * g1 * (f1 + f2)
-        + 4 * ElectronMass2 * DeltaNP * (f2sq + f12 + 2 * g12) / NucleonsMass
+            16 * t * g1 * (f1 + f2)
+            + 4 * ElectronMass2 * DeltaNP * (f2sq + f12 + 2 * g12) / NucleonsMass
     )
 
     C = (1 / 16) * (4 * (f1sq + g1sq) - t * f2sq / NucleonsMass2)

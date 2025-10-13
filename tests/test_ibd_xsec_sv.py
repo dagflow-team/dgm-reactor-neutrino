@@ -11,7 +11,6 @@ from dgm_reactor_neutrino.ibd_xsec_sv import IBDXsecSV
 
 
 def test_IBDXsecSV(debug_graph, test_name: str, output_path: str):
-
     data = {
         "format": "value",
         "state": "fixed",
@@ -23,9 +22,9 @@ def test_IBDXsecSV(debug_graph, test_name: str, output_path: str):
             "CosOfCab": 0.9746,
             "xi": 3.706,
             "g1_0": -1.270,
-            "MAsq": 1.0 * 10**6,
-            "MVsq": 0.71 * 10**6,
-            "M_Z": 80.385 * 1.0e3,
+            "MAsq": 1.0 * 10 ** 6,
+            "MVsq": 0.71 * 10 ** 6,
+            "MZ": 80.385 * 1.0e3,
         },
         "labels": {
             "NeutronMass": "neutron mass, MeV",
@@ -37,7 +36,7 @@ def test_IBDXsecSV(debug_graph, test_name: str, output_path: str):
             "g1_0": "axial-vector coupling constant g at param t equal zero",
             "MAsq": "axial mass in square, MeV^2",
             "MVsq": "vector mass in square, MeV^2",
-            "M_Z": "Z-boson mass, MeV",
+            "MZ": "Z-boson mass, MeV",
         },
     }
 
