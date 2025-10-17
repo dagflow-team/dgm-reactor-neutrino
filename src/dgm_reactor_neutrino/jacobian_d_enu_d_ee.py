@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
+from dag_modelling.core.global_parameters import NUMBA_CACHE_ENABLE
 from dag_modelling.core.input_strategy import AddNewInputAddNewOutput
 from dag_modelling.core.node import Node
 from dag_modelling.core.type_functions import (
@@ -47,12 +48,8 @@ class Jacobian_dEnu_dEe(Node):
     _input_energy_type: Literal["ee", "edep"]
     _use_edep: bool
 
-    def __init__(
-        self, name, *args, input_energy: Literal["ee", "edep"] = "ee", **kwargs
-    ):
-        super().__init__(
-            name, *args, **kwargs, input_strategy=AddNewInputAddNewOutput()
-        )
+    def __init__(self, name, *args, input_energy: Literal["ee", "edep"] = "ee", **kwargs):
+        super().__init__(name, *args, **kwargs, input_strategy=AddNewInputAddNewOutput())
 
         self._input_energy_type = input_energy
         match input_energy:
@@ -114,7 +111,7 @@ class Jacobian_dEnu_dEe(Node):
         )
 
 
-@njit(cache=True)
+@njit(cache=NUMBA_CACHE_ENABLE)
 def _jacobian_dEnu_dEe(
     EnuIn: NDArray[double],
     EeIn: NDArray[double],

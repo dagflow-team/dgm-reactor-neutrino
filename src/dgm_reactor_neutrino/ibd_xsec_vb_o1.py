@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from dag_modelling.core.global_parameters import NUMBA_CACHE_ENABLE
 from dag_modelling.core.input_strategy import AddNewInputAddNewOutput
 from dag_modelling.core.node import Node
 from dag_modelling.core.type_functions import (
@@ -53,9 +54,7 @@ class IBDXsecVBO1(Node):
     _const_f2: Input
 
     def __init__(self, name, *args, **kwargs):
-        super().__init__(
-            name, *args, **kwargs, input_strategy=AddNewInputAddNewOutput()
-        )
+        super().__init__(name, *args, **kwargs, input_strategy=AddNewInputAddNewOutput())
         self.labels.setdefaults(
             {
                 "text": r"IBD cross section σ(Eν,cosθ), cm⁻²",
@@ -72,12 +71,8 @@ class IBDXsecVBO1(Node):
         self._const_me = self._add_input("ElectronMass", positional=False, keyword=True)
         self._const_mp = self._add_input("ProtonMass", positional=False, keyword=True)
         self._const_mn = self._add_input("NeutronMass", positional=False, keyword=True)
-        self._const_taun = self._add_input(
-            "NeutronLifeTime", positional=False, keyword=True
-        )
-        self._const_fps = self._add_input(
-            "PhaseSpaceFactor", positional=False, keyword=True
-        )
+        self._const_taun = self._add_input("NeutronLifeTime", positional=False, keyword=True)
+        self._const_fps = self._add_input("PhaseSpaceFactor", positional=False, keyword=True)
         self._const_g = self._add_input("g", positional=False, keyword=True)
         self._const_f = self._add_input("f", positional=False, keyword=True)
         self._const_f2 = self._add_input("f2", positional=False, keyword=True)
@@ -117,7 +112,7 @@ _constant_qe = constant("elementary charge")
 _constant_c = constant("speed of light in vacuum")
 
 
-@njit(cache=True)
+@njit(cache=NUMBA_CACHE_ENABLE)
 def _ibdxsecO1(
     EnuIn: NDArray[double],
     CosThetaIn: NDArray[double],
@@ -134,9 +129,7 @@ def _ibdxsecO1(
     ElectronMass2 = ElectronMass * ElectronMass
     NeutronMass2 = NeutronMass * NeutronMass
     NucleonMass = 0.5 * (NeutronMass + ProtonMass)
-    EnuThreshold = 0.5 * (
-        NeutronMass2 / (ProtonMass - ElectronMass) - ProtonMass + ElectronMass
-    )
+    EnuThreshold = 0.5 * (NeutronMass2 / (ProtonMass - ElectronMass) - ProtonMass + ElectronMass)
 
     DeltaNP = NeutronMass - ProtonMass
     const_y2 = 0.5 * (DeltaNP * DeltaNP - ElectronMass2)
@@ -172,10 +165,7 @@ def _ibdxsecO1(
         pe0 = sqrt(Ee0 * Ee0 - ElectronMass2)
         ve0 = pe0 / Ee0
 
-        Ee1 = (
-            Ee0 * (1.0 - Enu / NucleonMass * (1.0 - ve0 * ctheta))
-            - const_y2 / NucleonMass
-        )
+        Ee1 = Ee0 * (1.0 - Enu / NucleonMass * (1.0 - ve0 * ctheta)) - const_y2 / NucleonMass
         if Ee1 <= ElectronMass:
             result[i] = 0.0
             continue
@@ -196,20 +186,11 @@ def _ibdxsecO1(
             * (const_f + const_f2)
             * ((2.0 * Ee0 + DeltaNP) * (1.0 - ve0 * ctheta) - ElectronMass2 / Ee0)
         )
-        gamma_2 = (const_fsq + const_gsq) * (
-            DeltaNP * (1.0 + ve0 * ctheta) + ElectronMass2 / Ee0
-        )
+        gamma_2 = (const_fsq + const_gsq) * (DeltaNP * (1.0 + ve0 * ctheta) + ElectronMass2 / Ee0)
         A = (Ee0 + DeltaNP) * (1.0 - ctheta / ve0) - DeltaNP
         gamma_3 = (const_fsq + 3.0 * const_gsq) * A
         gamma_4 = (const_fsq - const_gsq) * A * ve0 * ctheta
 
-        sigma1b = (
-            -0.5
-            * sigma0
-            * Ee0
-            * pe0
-            * (gamma_1 + gamma_2 + gamma_3 + gamma_4)
-            / NucleonMass
-        )
+        sigma1b = -0.5 * sigma0 * Ee0 * pe0 * (gamma_1 + gamma_2 + gamma_3 + gamma_4) / NucleonMass
 
         result[i] = MeV2cm * (sigma1a + sigma1b)

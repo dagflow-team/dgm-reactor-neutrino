@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from dag_modelling.core.global_parameters import NUMBA_CACHE_ENABLE
 from dag_modelling.lib.abstract import OneToOneNode
 from numba import njit
 from numpy import multiply, pi
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
 _forth_over_pi = 0.25 / pi
 
 
-@njit(cache=True)
+@njit(cache=NUMBA_CACHE_ENABLE)
 def _inv_sq_law(data: NDArray, out: NDArray):
     for i in range(len(out)):
         L = data[i]
@@ -38,9 +39,7 @@ class InverseSquareLaw(OneToOneNode):
     __slots__ = ("_scale",)
     _scale: float
 
-    def __init__(
-        self, *args, scale: Literal["km_to_cm", "m_to_cm", None] = None, **kwargs
-    ):
+    def __init__(self, *args, scale: Literal["km_to_cm", "m_to_cm", None] = None, **kwargs):
         super().__init__(*args, **kwargs)
         self._labels.setdefault("mark", "1/(4πL²)")
         self._scale = _scales[scale]
@@ -54,15 +53,11 @@ class InverseSquareLaw(OneToOneNode):
             self.function = self._function_scaled
 
     def _function_normal(self):
-        for indata, outdata in zip(
-            self.inputs.iter_data(), self.outputs.iter_data_unsafe()
-        ):
+        for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
             _inv_sq_law(indata.ravel(), outdata.ravel())
 
     def _function_scaled(self):
         scale = self._scale
-        for indata, outdata in zip(
-            self.inputs.iter_data(), self.outputs.iter_data_unsafe()
-        ):
+        for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
             _inv_sq_law(indata.ravel(), outdata.ravel())
             multiply(outdata, scale, out=outdata)
