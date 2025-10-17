@@ -25,7 +25,12 @@ dependencies = [
   "scipy",
 ]
 
-optional-dependencies.test = [ "coverage", "pytest", "pytest-cov" ]
+optional-dependencies.test = [
+  "coverage",
+  "pygraphviz",
+  "pytest",
+  "pytest-cov",
+]
 urls."Bug Tracker" = "https://github.com/dagflow-team/dgm-reactor-neutrino/issues"
 urls."DAGModelling Team" = "https://github.com/dagflow-team"
 urls.documentation = "https://github.com/dagflow-team/dgm-reactor-neutrino/wiki"
