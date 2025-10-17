@@ -5,7 +5,7 @@ requires = [ "packaging", "setuptools", "wheel" ]
 
 [project]
 name = "dgm-reactor-neutrino"
-version = "0.2.1"
+version = "0.2.2"
 description = "The package implements computational nodes for reactor electron antineutrino (oscillation) physics analysis for dag-modelling"
 readme = "README.md"
 license = "MIT"
@@ -19,12 +19,13 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-  "dag-modelling>=0.12",
+  # "dag-modelling>=0.14.3",
+  "dag-modelling @ git+https://git.jinr.ru/dagflow-team/dag-modelling.git@feat/njit-nocache",
   "numba",
   "scipy",
 ]
 
-optional-dependencies.test = [ "coverage", "pytest", "pytest-cov" ]
+optional-dependencies.test = [ "dag-modelling[test]>=0.14.3" ]
 urls."Bug Tracker" = "https://github.com/dagflow-team/dgm-reactor-neutrino/issues"
 urls."DAGModelling Team" = "https://github.com/dagflow-team"
 urls.documentation = "https://github.com/dagflow-team/dgm-reactor-neutrino/wiki"

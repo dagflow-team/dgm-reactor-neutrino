@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from dag_modelling.core.global_parameters import NUMBA_CACHE_ENABLE
 from dag_modelling.core.node import Node
 from dag_modelling.core.storage import NodeStorage
 from dag_modelling.core.type_functions import (
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
 _surprobArgConversion = pi * 2e-3 * value("electron volt-inverse meter relationship")
 
 
-@njit(cache=True)
+@njit(cache=NUMBA_CACHE_ENABLE)
 def _sur_prob(
     out: NDArray[double],
     E: NDArray[double],
