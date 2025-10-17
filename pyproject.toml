@@ -25,7 +25,7 @@ dependencies = [
   "scipy",
 ]
 
-optional-dependencies.test = [ "dag-modelling[test]" ]
+optional-dependencies.test = [ "dag-modelling[test]>=0.14.3" ]
 urls."Bug Tracker" = "https://github.com/dagflow-team/dgm-reactor-neutrino/issues"
 urls."DAGModelling Team" = "https://github.com/dagflow-team"
 urls.documentation = "https://github.com/dagflow-team/dgm-reactor-neutrino/wiki"
