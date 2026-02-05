@@ -6,7 +6,7 @@ requires = [ "packaging", "setuptools", "wheel" ]
 [project]
 name = "dgm-reactor-neutrino"
 version = "0.2.2"
-description = "The package implements computational nodes for reactor electron antineutrino (oscillation) physics analysis for dag-modelling"
+description = "Methods for reactor electron antineutrino (oscillation) physics analysis in dag-modelling"
 readme = "README.md"
 license = "MIT"
 maintainers = [ { name = "DAGModelling Team", email = "dagflow@jinr.ru" } ]
