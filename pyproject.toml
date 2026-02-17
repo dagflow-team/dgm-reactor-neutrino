@@ -5,26 +5,26 @@ requires = [ "packaging", "setuptools", "wheel" ]
 
 [project]
 name = "dgm-reactor-neutrino"
-version = "0.2.2"
+version = "0.3.0"
 description = "Functions (nodes) for reactor electron antineutrino (oscillation) physics analysis in dag-modelling"
 readme = "README.md"
 license = "MIT"
 maintainers = [ { name = "DAGModelling Team", email = "dagflow@jinr.ru" } ]
 authors = [ { name = "DAGModelling Team", email = "dagflow@jinr.ru" } ]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-  "dag-modelling>=0.14.3",
+  "dag-modelling>=0.15.0",
   "numba",
   "scipy",
 ]
 
-optional-dependencies.test = [ "dag-modelling[test]>=0.14.3" ]
+optional-dependencies.test = [ "dag-modelling[test]>=0.15.0" ]
 urls."Bug Tracker" = "https://github.com/dagflow-team/dgm-reactor-neutrino/issues"
 urls."DAGModelling Team" = "https://github.com/dagflow-team"
 urls.documentation = "https://github.com/dagflow-team/dgm-reactor-neutrino/wiki"
