@@ -19,7 +19,8 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-  "dag-modelling>=0.15.0",
+  # "dag-modelling>=0.15.0",
+  "dag-modelling>=0.14.4.post0",
   "numba",
   "scipy",
 ]
