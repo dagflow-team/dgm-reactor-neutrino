@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.3.0] - 2026-02-14
+## [0.3.0] - 2026-02-24
 
 - chore: raise minimal Python version to 3.12.
 - feature: dynamic Versioning.
