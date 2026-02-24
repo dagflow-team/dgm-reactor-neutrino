@@ -1,3 +1,5 @@
+src/dgm_reactor_neutrino/__version__.py
+
 output
 build
 _build
