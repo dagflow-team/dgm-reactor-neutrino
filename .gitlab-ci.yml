@@ -1,5 +1,6 @@
 stages:
   - tests
+  - publish
 
 tests:
   image: 'python:3.12.11-bullseye'
