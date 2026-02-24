@@ -1,30 +1,30 @@
 [build-system]
 build-backend = "setuptools.build_meta"
 
-requires = [ "packaging", "setuptools", "wheel" ]
+requires = [ "packaging", "setuptools", "setuptools-scm", "wheel" ]
 
 [project]
 name = "dgm-reactor-neutrino"
-version = "0.2.2"
 description = "Functions (nodes) for reactor electron antineutrino (oscillation) physics analysis in dag-modelling"
 readme = "README.md"
 license = "MIT"
 maintainers = [ { name = "DAGModelling Team", email = "dagflow@jinr.ru" } ]
 authors = [ { name = "DAGModelling Team", email = "dagflow@jinr.ru" } ]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
 ]
+dynamic = [ "version" ]
 dependencies = [
-  "dag-modelling>=0.14.3",
+  "dag-modelling>=0.14.4.post0",
   "numba",
   "scipy",
 ]
 
-optional-dependencies.test = [ "dag-modelling[test]>=0.14.3" ]
+optional-dependencies.test = [ "dag-modelling[test]>=0.15.0" ]
 urls."Bug Tracker" = "https://github.com/dagflow-team/dgm-reactor-neutrino/issues"
 urls."DAGModelling Team" = "https://github.com/dagflow-team"
 urls.documentation = "https://github.com/dagflow-team/dgm-reactor-neutrino/wiki"
@@ -36,6 +36,11 @@ where = [ "src" ]
 exclude = [
   "tests*",
 ]
+
+[tool.setuptools_scm]
+write_to = "src/dgm_reactor_neutrino/__version__.py"
+version_scheme = "no-guess-dev"
+local_scheme = "no-local-version"
 
 [tool.black]
 line-length = 100
