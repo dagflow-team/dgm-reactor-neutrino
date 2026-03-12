@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from dag_modelling.core.global_parameters import NUMBA_CACHE_ENABLE
 from dag_modelling.core.node import Node
@@ -153,6 +153,7 @@ class NueSurvivalProbability(Node):
         except KeyError as e:
             raise RuntimeError(f"Invalid distance unit {distance_unit}") from e
 
+    @override
     def _type_function(self) -> None:
         """A output takes this function to determine the dtype and shape."""
         check_shape_of_inputs(
@@ -191,6 +192,7 @@ class NueSurvivalProbability(Node):
             self._surprob_arg_conversion_factor,
         )
 
+    @override
     def _post_allocate(self):
         super()._post_allocate()
 

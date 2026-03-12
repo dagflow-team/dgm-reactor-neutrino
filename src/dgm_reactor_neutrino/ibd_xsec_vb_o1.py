@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from dag_modelling.core.global_parameters import NUMBA_CACHE_ENABLE
 from dag_modelling.core.input_strategy import AddNewInputAddNewOutput
@@ -92,6 +92,7 @@ class IBDXsecVBO1(Node):
             self._const_f2.data[0],
         )
 
+    @override
     def _type_function(self) -> None:
         """A output takes this function to determine the dtype and shape."""
         check_dtype_of_inputs(self, slice(None), dtype="d")
