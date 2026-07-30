@@ -163,7 +163,7 @@ class NueSurvivalProbabilityMatter(Node):
                 "DeltaMSq21",
                 "nmo",
                 "electron_fraction",
-                "density"
+                "density",
                 "surprobArgConversion",
             ),
         )
