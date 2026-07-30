@@ -37,9 +37,9 @@ def _sur_prob(
         DeltaMSq21: NDArray[double],
         DeltaMSq32: NDArray[double],
         nmo: NDArray[double],
-        surprobArgConversion: NDArray[double],
         electron_fraction: NDArray[double],
         density: NDArray[double],
+        surprobArgConversion: NDArray[double],
 ) -> None:
     _DeltaMSq21 = DeltaMSq21[0]
     _DeltaMSq32 = nmo[0] * DeltaMSq32[0]  # α * |Δm²₃₂|
@@ -133,6 +133,7 @@ class NueSurvivalProbabilityMatter(Node):
         "_DeltaMSq32",
         "_nmo",
         "_electron_fraction"
+        "_density",
         "_surprob_arg_conversion_factor",
     )
 
@@ -145,6 +146,7 @@ class NueSurvivalProbabilityMatter(Node):
     _SinSq2Theta12: NDArray
     _SinSq2Theta13: NDArray
     _electron_fraction: NDArray
+    _density: NDArray
     _surprob_arg_conversion_factor: NDArray
     _result: NDArray
 
@@ -161,6 +163,7 @@ class NueSurvivalProbabilityMatter(Node):
                 "DeltaMSq21",
                 "nmo",
                 "electron_fraction",
+                "density"
                 "surprobArgConversion",
             ),
         )
@@ -173,6 +176,7 @@ class NueSurvivalProbabilityMatter(Node):
         self._add_input("DeltaMSq32", positional=False)
         self._add_input("nmo", positional=False)
         self._add_input("electron_fraction", positional=False)
+        self._add_input("density", positional=False)
         try:
             self._baseline_scale = {"km": 1, "m": 1.0e-3}[distance_unit]
         except KeyError as e:
@@ -190,6 +194,7 @@ class NueSurvivalProbabilityMatter(Node):
                 "DeltaMSq32",
                 "nmo",
                 "electron_fraction",
+                "density",
             ),
             (1,),
         )
@@ -214,6 +219,7 @@ class NueSurvivalProbabilityMatter(Node):
             self._DeltaMSq32,
             self._nmo,
             self._electron_fraction,
+            self._density,
             self._surprob_arg_conversion_factor,
         )
 
@@ -230,6 +236,7 @@ class NueSurvivalProbabilityMatter(Node):
         self._DeltaMSq32 = self.inputs["DeltaMSq32"]._data
         self._nmo = self.inputs["nmo"]._data
         self._electron_fraction = self.inputs["electron_fraction"]._data
+        self._density = self.inputs["density"]._data
 
         if conversion_input := self.inputs.get("surprobArgConversion"):
             self._surprob_arg_conversion_factor = conversion_input._data
