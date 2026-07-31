@@ -35,15 +35,20 @@ def _sur_prob(
         SinSq2Theta12: NDArray[double],
         SinSq2Theta13: NDArray[double],
         DeltaMSq21: NDArray[double],
-        DeltaMSq32: NDArray[double],
+        DeltaMSq3lAbs: NDArray[double],
+        is_dm32_leading: float,
         nmo: NDArray[double],
-        electron_fraction: NDArray[double],
+        ElectronFraction: NDArray[double],
         density: NDArray[double],
         surprobArgConversion: NDArray[double],
 ) -> None:
     _DeltaMSq21 = DeltaMSq21[0]
-    _DeltaMSq32 = nmo[0] * DeltaMSq32[0]  # α * |Δm²₃₂|
-    _DeltaMSq31 = nmo[0] * DeltaMSq32[0] + _DeltaMSq21  # α*|Δm²₃₂| + Δm²₂₁
+    if is_dm32_leading:
+        _DeltaMSq32 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₂ = α*|Δm²₃ₗ|
+        _DeltaMSq31 = _DeltaMSq32 + _DeltaMSq21  # Δm²₃₁ = Δm²₃₂ + Δm²₂₁
+    else:
+        _DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₁ = α*|Δm²₃ₗ|
+        _DeltaMSq32 = _DeltaMSq31 - _DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
     _SinSq2Theta13 = SinSq2Theta13[0]
     _SinSq2Theta12 = SinSq2Theta12[0]
 
@@ -58,7 +63,7 @@ def _sur_prob(
 
     _DeltaMSqee = _CosSqTheta12 * _DeltaMSq31 + _SinSqTheta12 * _DeltaMSq32
 
-    _m_density_const = electron_fraction[0] / _aem_g * (-2.0) * sqrt(2.0) * _Gf
+    _m_density_const = ElectronFraction[0] / _aem_g * (-2.0) * sqrt(2.0) * _Gf
     msw_factor = _m_density_const * density[0]
 
     Lcq = surprobArgConversion[0] * 0.25 * L[0] * L_scale
@@ -108,7 +113,7 @@ class NueSurvivalProbabilityMatter(Node):
         `SinSq2Theta12`: sin²2θ₁₂
         `SinSq2Theta13`: sin²2θ₁₃
         `DeltaMSq21`: Δm²₂₁
-        `DeltaMSq32`: |Δm²₃₂|
+        `DeltaMSq32` or `DeltaMSq31`: |Δm²₃₂| or |Δm²₃₁| depending on `leading_mass_splitting_3l_name`
         `nmo`: α - the mass ordering constant
 
     optional inputs:
@@ -130,9 +135,10 @@ class NueSurvivalProbabilityMatter(Node):
         "_SinSq2Theta12",
         "_SinSq2Theta13",
         "_DeltaMSq21",
-        "_DeltaMSq32",
+        "_DeltaMSq3lAbs",
+        "_is_dm32_leading",
         "_nmo",
-        "_electron_fraction"
+        "_ElectronFraction",
         "_density",
         "_surprob_arg_conversion_factor",
     )
@@ -145,12 +151,20 @@ class NueSurvivalProbabilityMatter(Node):
     _DeltaMSq32: NDArray
     _SinSq2Theta12: NDArray
     _SinSq2Theta13: NDArray
-    _electron_fraction: NDArray
+    _ElectronFraction: NDArray
     _density: NDArray
     _surprob_arg_conversion_factor: NDArray
     _result: NDArray
 
-    def __init__(self, *args, distance_unit: Literal["km", "m"] = "km", **kwargs):
+    def __init__(
+            self,
+            *args,
+            leading_mass_splitting_3l_name: Literal["DeltaMSq31", "DeltaMSq32"],
+            distance_unit: Literal["km", "m"] = "km",
+            **kwargs,
+    ):
+        if leading_mass_splitting_3l_name not in {"DeltaMSq31", "DeltaMSq32"}:
+            raise RuntimeError(f"Do not support switch: {leading_mass_splitting_3l_name=}")
         super().__init__(
             *args,
             **kwargs,
@@ -159,23 +173,25 @@ class NueSurvivalProbabilityMatter(Node):
                 "L",
                 "SinSq2Theta13",
                 "SinSq2Theta12",
-                "DeltaMSq32",
+                leading_mass_splitting_3l_name,
                 "DeltaMSq21",
                 "nmo",
-                "electron_fraction",
+                "ElectronFraction",
                 "density",
                 "surprobArgConversion",
             ),
         )
+        self._fd.needs_post_allocate = True
+        self._is_dm32_leading = leading_mass_splitting_3l_name == "DeltaMSq32"
         self._labels.setdefault("mark", "P(ee)")
         self._add_pair("E", "result")
         self._add_input("L", positional=False)
         self._add_input("SinSq2Theta12", positional=False)
         self._add_input("SinSq2Theta13", positional=False)
         self._add_input("DeltaMSq21", positional=False)
-        self._add_input("DeltaMSq32", positional=False)
+        self._add_input(leading_mass_splitting_3l_name, positional=False)
         self._add_input("nmo", positional=False)
-        self._add_input("electron_fraction", positional=False)
+        self._add_input("ElectronFraction", positional=False)
         self._add_input("density", positional=False)
         try:
             self._baseline_scale = {"km": 1, "m": 1.0e-3}[distance_unit]
@@ -191,9 +207,9 @@ class NueSurvivalProbabilityMatter(Node):
                 "SinSq2Theta12",
                 "SinSq2Theta13",
                 "DeltaMSq21",
-                "DeltaMSq32",
+                "DeltaMSq32" if self._is_dm32_leading else "DeltaMSq31",
                 "nmo",
-                "electron_fraction",
+                "ElectronFraction",
                 "density",
             ),
             (1,),
@@ -216,9 +232,10 @@ class NueSurvivalProbabilityMatter(Node):
             self._SinSq2Theta12,
             self._SinSq2Theta13,
             self._DeltaMSq21,
-            self._DeltaMSq32,
+            self._DeltaMSq3lAbs,
+            self._is_dm32_leading,
             self._nmo,
-            self._electron_fraction,
+            self._ElectronFraction,
             self._density,
             self._surprob_arg_conversion_factor,
         )
@@ -233,9 +250,11 @@ class NueSurvivalProbabilityMatter(Node):
         self._SinSq2Theta12 = self.inputs["SinSq2Theta12"]._data
         self._SinSq2Theta13 = self.inputs["SinSq2Theta13"]._data
         self._DeltaMSq21 = self.inputs["DeltaMSq21"]._data
-        self._DeltaMSq32 = self.inputs["DeltaMSq32"]._data
+        self._DeltaMSq3lAbs = self.inputs[
+            "DeltaMSq32" if self._is_dm32_leading else "DeltaMSq31"
+        ]._data
         self._nmo = self.inputs["nmo"]._data
-        self._electron_fraction = self.inputs["electron_fraction"]._data
+        self._ElectronFraction = self.inputs["ElectronFraction"]._data
         self._density = self.inputs["density"]._data
 
         if conversion_input := self.inputs.get("surprobArgConversion"):
