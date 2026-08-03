@@ -25,6 +25,13 @@ if TYPE_CHECKING:
 _surprobArgConversion = pi * 2e-3 * value("electron volt-inverse meter relationship")
 _aem_g = value('atomic mass constant') * 1000
 _Gf = value('Fermi coupling constant')
+_hbar = value('reduced Planck constant')
+_c = value('speed of light in vacuum')
+_e = value('elementary charge')
+_hbar_c_eV_cm = (_hbar * _c / _e) * 100
+_SqGeV_to_SqMeV = 1e-18
+_GF_CONVERSION = _SqGeV_to_SqMeV * (_hbar_c_eV_cm ** 3)
+_MeV_to_eV = 1e-6
 
 @njit(cache=True)
 def _sur_prob(
@@ -63,49 +70,50 @@ def _sur_prob(
 
     _DeltaMSqee = _CosSqTheta12 * _DeltaMSq31 + _SinSqTheta12 * _DeltaMSq32
 
-    _m_density_const = ElectronFraction[0] / _aem_g * (-2.0) * sqrt(2.0) * _Gf
-    msw_factor = _m_density_const * density[0]
+    _density_const = (ElectronFraction[0] / _aem_g * (-2.0) * sqrt(2.0) * _Gf *
+                      _GF_CONVERSION / _MeV_to_eV)
+    msw_factor = _density_const * density[0]
 
     Lcq = surprobArgConversion[0] * 0.25 * L[0] * L_scale
 
     for i in range(len(out)):
-        m_a = msw_factor * E[i]
+        a = msw_factor * E[i]
 
-        m_common_21 = (_CosSqTheta13 / _DeltaMSq21) * m_a
-        m_common_21_squared = m_common_21 * m_common_21
+        common_21 = (_CosSqTheta13 / _DeltaMSq21) * a
+        common_21_squared = common_21 * common_21
 
-        m_sinSq13_mod = _SinSqTheta13 + (2.0 * _SinSqTheta13 * _CosSqTheta13 / _DeltaMSqee) * m_a
+        sinSq13_mod = _SinSqTheta13 + (2.0 * _SinSqTheta13 * _CosSqTheta13 / _DeltaMSqee) * a
 
-        m_sinSq12_mod = (_SinSqTheta12
-                         + 2.0 * _scSq12 * m_common_21
-                         + 3.0 * _scSq12 * _cosDouble12 * m_common_21_squared)
+        sinSq12_mod = (_SinSqTheta12
+                         + 2.0 * _scSq12 * common_21
+                         + 3.0 * _scSq12 * _cosDouble12 * common_21_squared)
 
-        m_dm21_mod = (_DeltaMSq21
-                      - _DeltaMSq21 * _cosDouble12 * m_common_21
-                      + 2.0 * _DeltaMSq21 * _scSq12 * m_common_21_squared)
+        dm21_mod = (_DeltaMSq21
+                      - _DeltaMSq21 * _cosDouble12 * common_21
+                      + 2.0 * _DeltaMSq21 * _scSq12 * common_21_squared)
 
-        m_common_3 = _scSq12 * _CosSqTheta13 * m_common_21
+        common_3 = _scSq12 * _CosSqTheta13 * common_21
 
-        m_dm31_mod = (_DeltaMSq31
-                      - m_a * ((_CosSqTheta12 * _CosSqTheta13 - _SinSqTheta13) - m_common_3))
+        dm31_mod = (_DeltaMSq31
+                      - a * ((_CosSqTheta12 * _CosSqTheta13 - _SinSqTheta13) - common_3))
 
-        m_dm32_mod = (_DeltaMSq32
-                      - m_a * ((_SinSqTheta12 * _CosSqTheta13 - _SinSqTheta13) + m_common_3))
+        dm32_mod = (_DeltaMSq32
+                      - a * ((_SinSqTheta12 * _CosSqTheta13 - _SinSqTheta13) + common_3))
 
-        sinArg21 = Lcq * (m_dm21_mod / E[i])
-        sinArg31 = Lcq * (m_dm31_mod / E[i])
-        sinArg32 = Lcq * (m_dm32_mod / E[i])
+        sinArg21 = Lcq * (dm21_mod / E[i])
+        sinArg31 = Lcq * (dm31_mod / E[i])
+        sinArg32 = Lcq * (dm32_mod / E[i])
 
         out[i] = (1.0
-                - 4.0 * ((1.0 - m_sinSq13_mod) ** 2
-                         * m_sinSq12_mod * (1.0 - m_sinSq12_mod)
+                - 4.0 * ((1.0 - sinSq13_mod) ** 2
+                         * sinSq12_mod * (1.0 - sinSq12_mod)
                          * (sin(sinArg21) ** 2))
-                - 4.0 * (m_sinSq13_mod * (1.0 - m_sinSq13_mod)
-                         * ((1.0 - m_sinSq12_mod) * (sin(sinArg31) ** 2)
-                            + m_sinSq12_mod * (sin(sinArg32) ** 2))))
+                - 4.0 * (sinSq13_mod * (1.0 - sinSq13_mod)
+                         * ((1.0 - sinSq12_mod) * (sin(sinArg31) ** 2)
+                            + sinSq12_mod * (sin(sinArg32) ** 2))))
 
 
-class NueSurvivalProbabilityMatter(Node):
+class NueSurvivalProbabilityKhan(Node):
     """
     inputs:
         `E`: array of the energies

@@ -7,11 +7,8 @@ from numpy import allclose, arcsin, cos, finfo, geomspace, sin, sqrt
 from scipy.constants import value
 from pytest import mark
 
-from dgm_reactor_neutrino import NueSurvivalProbabilityMatter
+from dgm_reactor_neutrino import NueSurvivalProbabilityKhan
 from dgm_reactor_neutrino.nue_survival_probability import _surprobArgConversion
-
-aem_g = value('atomic mass constant') * 1000
-Gf = value('Fermi coupling constant')
 
 @mark.parametrize("nmo", (1, -1))  # mass ordering
 @mark.parametrize(
@@ -41,8 +38,8 @@ def test_NueSurvivalProbabilityMatter(
     is_dm32_leading = leading_mass_splitting_3l_name == "DeltaMSq32"
     is_dm31_leading = leading_mass_splitting_3l_name == "DeltaMSq31"
 
-    with Graph(close_on_exit=True, debug=debug_graph) as graph:
-        surprob = NueSurvivalProbabilityMatter(
+    with Graph(close_on_exit=True) as graph:
+        surprob = NueSurvivalProbabilityKhan(
             "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
         )
         (in_E := Array("E", E, mode="fill")) >> surprob("E")
@@ -67,7 +64,17 @@ def test_NueSurvivalProbabilityMatter(
         conversionFactor = _surprobArgConversion
 
     def surprob_fcn() -> float:
-        tmp = L * conversionFactor / 4.0 / E
+        aem_g = value('atomic mass constant') * 1000
+        Gf = value('Fermi coupling constant')
+        hbar = value('reduced Planck constant')
+        c = value('speed of light in vacuum')
+        e = value('elementary charge')
+        hbar_c_eV_cm = (hbar * c / e) * 100
+        SqGeV_to_SqMeV = 1e-18
+        GF_CONVERSION = SqGeV_to_SqMeV * (hbar_c_eV_cm ** 3)
+        MeV_to_eV = 1e-6
+
+        Lcq = L * conversionFactor / 4.0
         _DeltaMSq31 = (
                 nmo * DeltaMSq3lAbs + DeltaMSq21 * is_dm32_leading
         )
@@ -80,52 +87,74 @@ def test_NueSurvivalProbabilityMatter(
         _DeltaMSq32 = (
                 nmo * DeltaMSq3lAbs - DeltaMSq21 * is_dm31_leading
         )  # Δm²₃₂ = α*|Δm²₃ₗ| - β*Δm²₂₁
-        theta12 = 0.5 * arcsin(sqrt(SinSq2Theta12))
-        theta13 = 0.5 * arcsin(sqrt(SinSq2Theta13))
-        _SinSqTheta12 = sin(theta12) ** 2  # sin²θ₁₂
-        _CosSqTheta12 = cos(theta12) ** 2  # cos²θ₁₂
-        _CosSqTheta13 = cos(theta13) ** 2  # cos^2 θ₁₃
-        _SinSqTheta13 = 1.0 - _CosSqTheta13  # sin^2 θ₁₃
+
+        # if is_dm32_leading:
+        #     _DeltaMSq32 = nmo * DeltaMSq3lAbs  # Δm²₃₂ = α*|Δm²₃ₗ|
+        #     _DeltaMSq31 = _DeltaMSq32 + DeltaMSq21  # Δm²₃₁ = Δm²₃₂ + Δm²₂₁
+        # else:
+        #     _DeltaMSq31 = nmo * DeltaMSq3lAbs  # Δm²₃₁ = α*|Δm²₃ₗ|
+        #     _DeltaMSq32 = _DeltaMSq31 - DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
+
+        _SinSqTheta12 = 0.5 * (1.0 - sqrt(1.0 - SinSq2Theta12))
+        _CosSqTheta12 = 1.0 - _SinSqTheta12
+        _SinSqTheta13 = 0.5 * (1.0 - sqrt(1.0 - SinSq2Theta13))
+        _CosSqTheta13 = 1.0 - _SinSqTheta13
         _CosQuTheta13 = _CosSqTheta13 ** 2  # cos^4 θ₁₃
         _scSq12 = _SinSqTheta12 * _CosSqTheta12
         _cosDouble12 = _CosSqTheta12 - _SinSqTheta12
 
         _DeltaMSqee = _CosSqTheta12 * _DeltaMSq31 + _SinSqTheta12 * _DeltaMSq32
 
-        _m_density_const = ElectronFraction / aem_g * (-2.0) * sqrt(2.0) * Gf
-        _msw_factor = _m_density_const * density
-        _m_a = _msw_factor * E
+        _density_const = (ElectronFraction / aem_g * (-2.0) * sqrt(2.0) * Gf *
+                          GF_CONVERSION / MeV_to_eV)
+        _msw_factor = _density_const * density
+        _a = _msw_factor * E
 
-        m_common_21 = (_CosSqTheta13 / DeltaMSq21) * _m_a
-        m_common_21_squared = m_common_21 * m_common_21
+        common_21 = (_CosSqTheta13 / DeltaMSq21) * _a
+        common_21_squared = common_21 * common_21
 
-        m_sinSq13_mod = _SinSqTheta13 + (2.0 * _SinSqTheta13 * _CosSqTheta13 / _DeltaMSqee) * _m_a
+        sinSq13_mod = _SinSqTheta13 + (2.0 * _SinSqTheta13 * _CosSqTheta13 / _DeltaMSqee) * _a
 
-        m_sinSq12_mod = (_SinSqTheta12
-                         + 2.0 * _scSq12 * m_common_21
-                         + 3.0 * _scSq12 * _cosDouble12 * m_common_21_squared)
+        sinSq12_mod = (_SinSqTheta12
+                         + 2.0 * _scSq12 * common_21
+                         + 3.0 * _scSq12 * _cosDouble12 * common_21_squared)
 
-        m_dm21_mod = (DeltaMSq21
-                      - DeltaMSq21 * _cosDouble12 * m_common_21
-                      + 2.0 * DeltaMSq21 * _scSq12 * m_common_21_squared)
+        dm21_mod = (DeltaMSq21
+                      - DeltaMSq21 * _cosDouble12 * common_21
+                      + 2.0 * DeltaMSq21 * _scSq12 * common_21_squared)
 
-        m_common_3 = _scSq12 * _CosSqTheta13 * m_common_21
+        common_3 = _scSq12 * _CosSqTheta13 * common_21
 
-        m_dm31_mod = (_DeltaMSq31
-                      - _m_a * ((_CosSqTheta12 * _CosSqTheta13 - _SinSqTheta13) - m_common_3))
+        dm31_mod = (_DeltaMSq31
+                      - _a * ((_CosSqTheta12 * _CosSqTheta13 - _SinSqTheta13) - common_3))
 
-        m_dm32_mod = (_DeltaMSq32
-                      - _m_a * ((_SinSqTheta12 * _CosSqTheta13 - _SinSqTheta13) + m_common_3))
+        dm32_mod = (_DeltaMSq32
+                      - _a * ((_SinSqTheta12 * _CosSqTheta13 - _SinSqTheta13) + common_3))
 
-        sinArg21 = tmp * (m_dm21_mod / E)
-        sinArg31 = tmp * (m_dm31_mod / E)
-        sinArg32 = tmp * (m_dm32_mod / E)
+        sinArg21 = Lcq * (dm21_mod / E)
+        sinArg31 = Lcq * (dm31_mod / E)
+        sinArg32 = Lcq * (dm32_mod / E)
 
         res = (1.0
-                - 4.0 * ((1.0 - m_sinSq13_mod) ** 2
-                         * m_sinSq12_mod * (1.0 - m_sinSq12_mod)
+                - 4.0 * ((1.0 - sinSq13_mod) ** 2
+                         * sinSq12_mod * (1.0 - sinSq12_mod)
                          * (sin(sinArg21) ** 2))
-                - 4.0 * (m_sinSq13_mod * (1.0 - m_sinSq13_mod)
-                         * ((1.0 - m_sinSq12_mod) * (sin(sinArg31) ** 2)
-                            + m_sinSq12_mod * (sin(sinArg32) ** 2))))
+                - 4.0 * (sinSq13_mod * (1.0 - sinSq13_mod)
+                         * ((1.0 - sinSq12_mod) * (sin(sinArg31) ** 2)
+                            + sinSq12_mod * (sin(sinArg32) ** 2))))
         return res
+
+    atol = finfo("d").resolution * 2
+    assert surprob.tainted is True
+    res = surprob_fcn()
+    assert allclose(surprob.outputs[0].data, res, rtol=0, atol=atol)
+    assert surprob.tainted is False
+
+    subplots(1, 1)
+    plot_auto(
+        surprob,
+        filter_kw={"masked_value": 0},
+        show=False,
+        close=True,
+        save=f"{output_path}/{test_name}_plot.pdf",
+    )
