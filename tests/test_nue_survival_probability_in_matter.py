@@ -19,6 +19,7 @@ from dgm_reactor_neutrino.nue_survival_probability import _surprobArgConversion
     (None, _surprobArgConversion, 0.9 * _surprobArgConversion),
 )
 @mark.parametrize("density", (0, 2.5))
+@mark.parametrize("mode", ("expansion", "exact"))
 def test_NueSurvivalProbabilityKhan(
     debug_graph,
     test_name,
@@ -27,6 +28,7 @@ def test_NueSurvivalProbabilityKhan(
     nmo,
     conversionFactor,
     density,
+    mode,
     output_path: str,
 ) -> None:
     E = geomspace(1, 100, 1000)  # MeV
@@ -41,6 +43,7 @@ def test_NueSurvivalProbabilityKhan(
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
         surprob = NueSurvivalProbabilityKhan(
             "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
+            mode=mode,
         )
         (in_E := Array("E", E, mode="fill")) >> surprob("E")
         (in_L := Array("L", [L], mode="fill")) >> surprob("L")
@@ -102,40 +105,94 @@ def test_NueSurvivalProbabilityKhan(
                           GF_CONVERSION / MeV_to_eV)
         _msw_factor = _density_const * density
         _a = _msw_factor * E
+        if mode == "expansion":
+            common_21 = (_CosSqTheta13 / DeltaMSq21) * _a
+            common_21_squared = common_21 * common_21
 
-        common_21 = (_CosSqTheta13 / DeltaMSq21) * _a
-        common_21_squared = common_21 * common_21
+            sinSq13_mod = _SinSqTheta13 + (2.0 * _SinSqTheta13 * _CosSqTheta13 / _DeltaMSqee) * _a
 
-        sinSq13_mod = _SinSqTheta13 + (2.0 * _SinSqTheta13 * _CosSqTheta13 / _DeltaMSqee) * _a
+            sinSq12_mod = (_SinSqTheta12
+                             + 2.0 * _scSq12 * common_21
+                             + 3.0 * _scSq12 * _cosDouble12 * common_21_squared)
 
-        sinSq12_mod = (_SinSqTheta12
-                         + 2.0 * _scSq12 * common_21
-                         + 3.0 * _scSq12 * _cosDouble12 * common_21_squared)
+            dm21_mod = (DeltaMSq21
+                          - DeltaMSq21 * _cosDouble12 * common_21
+                          + 2.0 * DeltaMSq21 * _scSq12 * common_21_squared)
 
-        dm21_mod = (DeltaMSq21
-                      - DeltaMSq21 * _cosDouble12 * common_21
-                      + 2.0 * DeltaMSq21 * _scSq12 * common_21_squared)
+            common_3 = _scSq12 * _CosSqTheta13 * common_21
 
-        common_3 = _scSq12 * _CosSqTheta13 * common_21
+            dm31_mod = (_DeltaMSq31
+                          - _a * ((_CosSqTheta12 * _CosSqTheta13 - _SinSqTheta13) - common_3))
 
-        dm31_mod = (_DeltaMSq31
-                      - _a * ((_CosSqTheta12 * _CosSqTheta13 - _SinSqTheta13) - common_3))
+            dm32_mod = (_DeltaMSq32
+                          - _a * ((_SinSqTheta12 * _CosSqTheta13 - _SinSqTheta13) + common_3))
 
-        dm32_mod = (_DeltaMSq32
-                      - _a * ((_SinSqTheta12 * _CosSqTheta13 - _SinSqTheta13) + common_3))
+            sinArg21 = Lcq * (dm21_mod / E)
+            sinArg31 = Lcq * (dm31_mod / E)
+            sinArg32 = Lcq * (dm32_mod / E)
 
-        sinArg21 = Lcq * (dm21_mod / E)
-        sinArg31 = Lcq * (dm31_mod / E)
-        sinArg32 = Lcq * (dm32_mod / E)
+            res = (1.0
+                    - 4.0 * ((1.0 - sinSq13_mod) ** 2
+                             * sinSq12_mod * (1.0 - sinSq12_mod)
+                             * (sin(sinArg21) ** 2))
+                    - 4.0 * (sinSq13_mod * (1.0 - sinSq13_mod)
+                             * ((1.0 - sinSq12_mod) * (sin(sinArg31) ** 2)
+                                + sinSq12_mod * (sin(sinArg32) ** 2))))
+            return res
+        elif mode == "exact":
+            Cos2Theta13 = sqrt(1.0 - SinSq2Theta13)
+            Cos2Theta12 = 1.0 - 2.0 * _SinSqTheta12
 
-        res = (1.0
-                - 4.0 * ((1.0 - sinSq13_mod) ** 2
-                         * sinSq12_mod * (1.0 - sinSq12_mod)
-                         * (sin(sinArg21) ** 2))
-                - 4.0 * (sinSq13_mod * (1.0 - sinSq13_mod)
-                         * ((1.0 - sinSq12_mod) * (sin(sinArg31) ** 2)
-                            + sinSq12_mod * (sin(sinArg32) ** 2))))
-        return res
+
+            shift_Cos2Theta13 = Cos2Theta13 - _a / _DeltaMSqee
+            shiftSq_Cos2Theta13 = shift_Cos2Theta13 * shift_Cos2Theta13
+            _DeltaMSqee_mod = _DeltaMSqee * sqrt(
+                shiftSq_Cos2Theta13 + SinSq2Theta13)
+
+            _Cos2Theta13_mod = (_DeltaMSqee * Cos2Theta13 - _a) / _DeltaMSqee_mod
+            _CosSq2Theta13_mod = _Cos2Theta13_mod * _Cos2Theta13_mod
+            _SinSq2Theta13_mod = 1.0 - _CosSq2Theta13_mod
+            _CosSqTheta13_mod = (1.0 + _Cos2Theta13_mod) / 2.0
+            _CosQuTheta13_mod = _CosSqTheta13_mod * _CosSqTheta13_mod
+
+            a_s = (_a + _DeltaMSqee - _DeltaMSqee_mod) / 2.0
+            shift_Cos2Theta12 = Cos2Theta12 - a_s / DeltaMSq21
+            shiftSq_Cos2Theta12 = shift_Cos2Theta12 * shift_Cos2Theta12
+            CosSqDiff_Theta13Mod_Theta13 = ((_DeltaMSqee_mod + _DeltaMSqee -
+                                             _a * Cos2Theta13) /
+                                            (2.0 * _DeltaMSqee_mod))
+            _DeltaMSq21_mod = DeltaMSq21 * sqrt(
+                shiftSq_Cos2Theta12 + CosSqDiff_Theta13Mod_Theta13 * SinSq2Theta12
+            )
+
+            _Cos2Theta12_mod = (DeltaMSq21 * Cos2Theta12 - a_s) / _DeltaMSq21_mod
+            _CosSq2Theta12_mod = _Cos2Theta12_mod * _Cos2Theta12_mod
+            _SinSq2Theta12_mod = 1.0 - _CosSq2Theta12_mod
+            _SinSqTheta12_mod = (1.0 - _Cos2Theta12_mod) / 2.0
+            _CosSqTheta12_mod = 1.0 - _SinSqTheta12_mod
+
+            _DeltaMSq31_mod = _DeltaMSqee_mod + _SinSqTheta12_mod * _DeltaMSq21_mod
+            _DeltaMSq32_mod = _DeltaMSq31_mod - _DeltaMSq21_mod
+
+            SinArg21 = Lcq * (_DeltaMSq21_mod / E)
+            SinArg31 = Lcq * (_DeltaMSq31_mod / E)
+            SinArg32 = Lcq * (_DeltaMSq32_mod / E)
+
+            SinDelta31_mod = sin(SinArg31)
+            SinSqDelta31_mod = SinDelta31_mod * SinDelta31_mod
+
+            SinDelta21_mod = sin(SinArg21)
+            SinSqDelta21_mod = SinDelta21_mod * SinDelta21_mod
+
+            SinDelta32_mod = sin(SinArg32)
+            SinSqDelta32_mod = SinDelta32_mod * SinDelta32_mod
+
+            res = (1.0
+                      - _CosQuTheta13_mod * _SinSq2Theta12_mod * SinSqDelta21_mod
+                      - _SinSq2Theta13_mod * _CosSqTheta12_mod * SinSqDelta31_mod
+                      - _SinSq2Theta13_mod * _SinSqTheta12_mod * SinSqDelta32_mod)
+            return res
+
 
     atol = finfo("d").resolution * 2
     assert surprob.tainted is True
@@ -220,6 +277,7 @@ def test_NueSurvivalProbabilityKhan(
     "conversionFactor",
     (None, _surprobArgConversion, 0.9 * _surprobArgConversion),
 )
+@mark.parametrize("mode", ("expansion", "exact"))
 def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
         debug_graph,
         test_name,
@@ -227,6 +285,7 @@ def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
         leading_mass_splitting_3l_name,
         nmo,
         conversionFactor,
+        mode,
         output_path: str,
 ):
     E = geomspace(1, 100, 1000)  # MeV
@@ -240,6 +299,7 @@ def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
     with Graph(close_on_exit=True, debug=debug_graph) as graph_Khan:
         surprobKhan = NueSurvivalProbabilityKhan(
             "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
+            mode=mode
         )
         Array("E", E, mode="fill") >> surprobKhan("E")
         Array("L", [L], mode="fill") >> surprobKhan("L")
@@ -261,7 +321,7 @@ def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
         surprob = NueSurvivalProbability(
-            "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name
+            "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
         )
         Array("E", E, mode="fill") >> surprob("E")
         Array("L", [L], mode="fill") >> surprob("L")

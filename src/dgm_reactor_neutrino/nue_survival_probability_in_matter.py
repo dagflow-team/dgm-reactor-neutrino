@@ -34,7 +34,7 @@ _GF_CONVERSION = _SqGeV_to_SqMeV * (_hbar_c_eV_cm ** 3)
 _MeV_to_eV = 1e-6
 
 @njit(cache=True)
-def _sur_prob(
+def _sur_prob_expansion(
         out: NDArray[double],
         E: NDArray[double],
         L: NDArray[double],
@@ -65,8 +65,8 @@ def _sur_prob(
     _CosSqTheta13 = 1.0 - _SinSqTheta13
     _CosQuTheta13 = _CosSqTheta13 * _CosSqTheta13
 
-    _SinSqDouble12 = _SinSqTheta12 * _CosSqTheta12
-    _CosSqDouble12 = _CosSqTheta12 - _SinSqTheta12
+    _SinSq2Theta12 = _SinSqTheta12 * _CosSqTheta12
+    _CosSq2Theta12 = _CosSqTheta12 - _SinSqTheta12
 
     _DeltaMSqee = _CosSqTheta12 * _DeltaMSq31 + _SinSqTheta12 * _DeltaMSq32
 
@@ -87,15 +87,15 @@ def _sur_prob(
         CosQu13_mod = CosSq13_mod * CosSq13_mod
 
         SinSq12_mod = (_SinSqTheta12
-                         + 2.0 * _SinSqDouble12 * common_21
-                         + 3.0 * _SinSqDouble12 * _CosSqDouble12 * common_21_squared)
+                         + 2.0 * _SinSq2Theta12 * common_21
+                         + 3.0 * _SinSq2Theta12 * _CosSq2Theta12 * common_21_squared)
         CosSq12_mod = 1.0 - SinSq12_mod
 
         DeltaMSq21_mod = (_DeltaMSq21
-                      - _DeltaMSq21 * _CosSqDouble12 * common_21
-                      + 2.0 * _DeltaMSq21 * _SinSqDouble12 * common_21_squared)
+                      - _DeltaMSq21 * _CosSq2Theta12 * common_21
+                      + 2.0 * _DeltaMSq21 * _SinSq2Theta12 * common_21_squared)
 
-        common_3 = _SinSqDouble12 * _CosSqTheta13 * common_21
+        common_3 = _SinSq2Theta12 * _CosSqTheta13 * common_21
 
         DeltaMSq31_mod = (_DeltaMSq31
                       - a * ((_CosSqTheta12 * _CosSqTheta13 - _SinSqTheta13) - common_3))
@@ -124,6 +124,100 @@ def _sur_prob(
                          * (CosSq12_mod * SinSqDelta31_mod
                             + SinSq12_mod * SinSqDelta32_mod)))
 
+
+@njit(cache=True)
+def _sur_prob_exact(
+        out: NDArray[double],
+        E: NDArray[double],
+        L: NDArray[double],
+        L_scale: float,
+        SinSq2Theta12: NDArray[double],
+        SinSq2Theta13: NDArray[double],
+        DeltaMSq21: NDArray[double],
+        DeltaMSq3lAbs: NDArray[double],
+        is_dm32_leading: float,
+        nmo: NDArray[double],
+        ElectronToNucleonFraction: NDArray[double],
+        density: NDArray[double],
+        surprobArgConversion: NDArray[double],
+) -> None:
+    _DeltaMSq21 = DeltaMSq21[0]
+    if is_dm32_leading:
+        _DeltaMSq32 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₂ = α*|Δm²₃ₗ|
+        _DeltaMSq31 = _DeltaMSq32 + _DeltaMSq21  # Δm²₃₁ = Δm²₃₂ + Δm²₂₁
+    else:
+        _DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₁ = α*|Δm²₃ₗ|
+        _DeltaMSq32 = _DeltaMSq31 - _DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
+    _SinSq2Theta13 = SinSq2Theta13[0]
+    _SinSq2Theta12 = SinSq2Theta12[0]
+
+    _SinSqTheta12 = 0.5 * (1.0 - sqrt(1.0 - _SinSq2Theta12))
+    _CosSqTheta12 = 1.0 - _SinSqTheta12
+    _Cos2Theta12 = 1.0 - 2.0 * _SinSqTheta12
+
+    _SinSqTheta13 = 0.5 * (1.0 - sqrt(1.0 - _SinSq2Theta13))
+    _CosSqTheta13 = 1.0 - _SinSqTheta13
+    _Cos2Theta13 = sqrt(1.0 - _SinSq2Theta13)
+    _CosQuTheta13 = _CosSqTheta13 * _CosSqTheta13
+
+    _DeltaMSqee = _CosSqTheta12 * _DeltaMSq31 + _SinSqTheta12 * _DeltaMSq32
+
+    _density_const = (ElectronToNucleonFraction[0] / _aem_g * (-2.0) * sqrt(2.0) * _Gf *
+                      _GF_CONVERSION / _MeV_to_eV)
+    msw_factor = _density_const * density[0]
+
+    Lcq = surprobArgConversion[0] * 0.25 * L[0] * L_scale
+
+    for i in range(len(out)):
+        a = msw_factor * E[i]
+
+        shift_Cos2Theta13 = _Cos2Theta13 - a / _DeltaMSqee
+        shiftSq_Cos2Theta13 = shift_Cos2Theta13 * shift_Cos2Theta13
+        _DeltaMSqee_mod = _DeltaMSqee * sqrt(
+            shiftSq_Cos2Theta13 + _SinSq2Theta13)
+
+        _Cos2Theta13_mod = (_DeltaMSqee * _Cos2Theta13 - a) / _DeltaMSqee_mod
+        _CosSq2Theta13_mod = _Cos2Theta13_mod * _Cos2Theta13_mod
+        _SinSq2Theta13_mod = 1.0 - _CosSq2Theta13_mod
+        _CosSqTheta13_mod = (1.0 + _Cos2Theta13_mod) / 2.0
+        _CosQuTheta13_mod = _CosSqTheta13_mod * _CosSqTheta13_mod
+
+        a_s = (a + _DeltaMSqee - _DeltaMSqee_mod) / 2.0
+        shift_Cos2Theta12 = _Cos2Theta12 - a_s / _DeltaMSq21
+        shiftSq_Cos2Theta12 = shift_Cos2Theta12 * shift_Cos2Theta12
+        CosSqDiff_Theta13Mod_Theta13 = ((_DeltaMSqee_mod + _DeltaMSqee -
+                                         a * _Cos2Theta13) /
+                                        (2.0 * _DeltaMSqee_mod))
+        _DeltaMSq21_mod = _DeltaMSq21 * sqrt(
+            shiftSq_Cos2Theta12 + CosSqDiff_Theta13Mod_Theta13 * _SinSq2Theta12
+        )
+
+        _Cos2Theta12_mod = (_DeltaMSq21 * _Cos2Theta12 - a_s) / _DeltaMSq21_mod
+        _CosSq2Theta12_mod = _Cos2Theta12_mod * _Cos2Theta12_mod
+        _SinSq2Theta12_mod = 1.0 - _CosSq2Theta12_mod
+        _SinSqTheta12_mod = (1.0 - _Cos2Theta12_mod) / 2.0
+        _CosSqTheta12_mod = 1.0 - _SinSqTheta12_mod
+
+        _DeltaMSq31_mod = _DeltaMSqee_mod +_SinSqTheta12_mod * _DeltaMSq21_mod
+        _DeltaMSq32_mod = _DeltaMSq31_mod - _DeltaMSq21_mod
+
+        SinArg21 = Lcq * (_DeltaMSq21_mod / E[i])
+        SinArg31 = Lcq * (_DeltaMSq31_mod / E[i])
+        SinArg32 = Lcq * (_DeltaMSq32_mod / E[i])
+
+        SinDelta31_mod = sin(SinArg31)
+        SinSqDelta31_mod = SinDelta31_mod * SinDelta31_mod
+
+        SinDelta21_mod = sin(SinArg21)
+        SinSqDelta21_mod = SinDelta21_mod * SinDelta21_mod
+
+        SinDelta32_mod = sin(SinArg32)
+        SinSqDelta32_mod = SinDelta32_mod * SinDelta32_mod
+
+        out[i] = (1.0
+                  - _CosQuTheta13_mod *_SinSq2Theta12_mod * SinSqDelta21_mod
+                  - _SinSq2Theta13_mod * _CosSqTheta12_mod * SinSqDelta31_mod
+                  - _SinSq2Theta13_mod * _SinSqTheta12_mod * SinSqDelta32_mod)
 
 class NueSurvivalProbabilityKhan(Node):
     """
@@ -180,6 +274,7 @@ class NueSurvivalProbabilityKhan(Node):
             self,
             *args,
             leading_mass_splitting_3l_name: Literal["DeltaMSq31", "DeltaMSq32"],
+            mode: Literal["expansion", "exact"] = "expansion",
             distance_unit: Literal["km", "m"] = "km",
             **kwargs,
     ):
@@ -218,6 +313,15 @@ class NueSurvivalProbabilityKhan(Node):
         except KeyError as e:
             raise RuntimeError(f"Invalid distance unit {distance_unit}") from e
 
+        self._functions_dict.update({
+            "expansion": self._fcn_expansion,
+            "exact": self._fcn_exact,
+        })
+
+        if mode not in self._functions_dict:
+            raise ValueError(f"Unknown mode '{mode}'. Expected one of {tuple(self._functions_dict.keys())}")
+        self.function = self._functions_dict[mode]
+
     def _type_function(self) -> None:
         """A output takes this function to determine the dtype and shape."""
         check_shape_of_inputs(
@@ -240,11 +344,31 @@ class NueSurvivalProbabilityKhan(Node):
             self, "E", "result", assign_meshes=True, overwrite_assigned=True
         )
 
-    def _function(self):
+    def _fcn_expansion(self):
         for callback in self._input_nodes_callbacks:
             callback()
 
-        _sur_prob(
+        _sur_prob_expansion(
+            self._result,
+            self._E,
+            self._L,
+            self._baseline_scale,
+            self._SinSq2Theta12,
+            self._SinSq2Theta13,
+            self._DeltaMSq21,
+            self._DeltaMSq3lAbs,
+            self._is_dm32_leading,
+            self._nmo,
+            self._ElectronToNucleonFraction,
+            self._density,
+            self._surprob_arg_conversion_factor,
+        )
+
+    def _fcn_exact(self):
+        for callback in self._input_nodes_callbacks:
+            callback()
+
+        _sur_prob_exact(
             self._result,
             self._E,
             self._L,
