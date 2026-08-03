@@ -45,7 +45,7 @@ def _sur_prob(
         DeltaMSq3lAbs: NDArray[double],
         is_dm32_leading: float,
         nmo: NDArray[double],
-        ElectronFraction: NDArray[double],
+        ElectronToNucleonFraction: NDArray[double],
         density: NDArray[double],
         surprobArgConversion: NDArray[double],
 ) -> None:
@@ -65,12 +65,12 @@ def _sur_prob(
     _CosSqTheta13 = 1.0 - _SinSqTheta13
     _CosQuTheta13 = _CosSqTheta13 * _CosSqTheta13
 
-    _scSq12 = _SinSqTheta12 * _CosSqTheta12
-    _cosDouble12 = _CosSqTheta12 - _SinSqTheta12
+    _SinSqDouble12 = _SinSqTheta12 * _CosSqTheta12
+    _CosSqDouble12 = _CosSqTheta12 - _SinSqTheta12
 
     _DeltaMSqee = _CosSqTheta12 * _DeltaMSq31 + _SinSqTheta12 * _DeltaMSq32
 
-    _density_const = (ElectronFraction[0] / _aem_g * (-2.0) * sqrt(2.0) * _Gf *
+    _density_const = (ElectronToNucleonFraction[0] / _aem_g * (-2.0) * sqrt(2.0) * _Gf *
                       _GF_CONVERSION / _MeV_to_eV)
     msw_factor = _density_const * density[0]
 
@@ -82,35 +82,47 @@ def _sur_prob(
         common_21 = (_CosSqTheta13 / _DeltaMSq21) * a
         common_21_squared = common_21 * common_21
 
-        sinSq13_mod = _SinSqTheta13 + (2.0 * _SinSqTheta13 * _CosSqTheta13 / _DeltaMSqee) * a
+        SinSq13_mod = _SinSqTheta13 + (2.0 * _SinSqTheta13 * _CosSqTheta13 / _DeltaMSqee) * a
+        CosSq13_mod = 1.0 - SinSq13_mod
+        CosQu13_mod = CosSq13_mod * CosSq13_mod
 
-        sinSq12_mod = (_SinSqTheta12
-                         + 2.0 * _scSq12 * common_21
-                         + 3.0 * _scSq12 * _cosDouble12 * common_21_squared)
+        SinSq12_mod = (_SinSqTheta12
+                         + 2.0 * _SinSqDouble12 * common_21
+                         + 3.0 * _SinSqDouble12 * _CosSqDouble12 * common_21_squared)
+        CosSq12_mod = 1.0 - SinSq12_mod
 
-        dm21_mod = (_DeltaMSq21
-                      - _DeltaMSq21 * _cosDouble12 * common_21
-                      + 2.0 * _DeltaMSq21 * _scSq12 * common_21_squared)
+        DeltaMSq21_mod = (_DeltaMSq21
+                      - _DeltaMSq21 * _CosSqDouble12 * common_21
+                      + 2.0 * _DeltaMSq21 * _SinSqDouble12 * common_21_squared)
 
-        common_3 = _scSq12 * _CosSqTheta13 * common_21
+        common_3 = _SinSqDouble12 * _CosSqTheta13 * common_21
 
-        dm31_mod = (_DeltaMSq31
+        DeltaMSq31_mod = (_DeltaMSq31
                       - a * ((_CosSqTheta12 * _CosSqTheta13 - _SinSqTheta13) - common_3))
 
-        dm32_mod = (_DeltaMSq32
+        DeltaMSq32_mod = (_DeltaMSq32
                       - a * ((_SinSqTheta12 * _CosSqTheta13 - _SinSqTheta13) + common_3))
 
-        sinArg21 = Lcq * (dm21_mod / E[i])
-        sinArg31 = Lcq * (dm31_mod / E[i])
-        sinArg32 = Lcq * (dm32_mod / E[i])
+        SinArg21 = Lcq * (DeltaMSq21_mod / E[i])
+        SinArg31 = Lcq * (DeltaMSq31_mod / E[i])
+        SinArg32 = Lcq * (DeltaMSq32_mod / E[i])
+
+        SinDelta31_mod = sin(SinArg31)
+        SinSqDelta31_mod = SinDelta31_mod* SinDelta31_mod
+
+        SinDelta21_mod = sin(SinArg21)
+        SinSqDelta21_mod = SinDelta21_mod * SinDelta21_mod
+
+        SinDelta32_mod = sin(SinArg32)
+        SinSqDelta32_mod = SinDelta32_mod * SinDelta32_mod
 
         out[i] = (1.0
-                - 4.0 * ((1.0 - sinSq13_mod) ** 2
-                         * sinSq12_mod * (1.0 - sinSq12_mod)
-                         * (sin(sinArg21) ** 2))
-                - 4.0 * (sinSq13_mod * (1.0 - sinSq13_mod)
-                         * ((1.0 - sinSq12_mod) * (sin(sinArg31) ** 2)
-                            + sinSq12_mod * (sin(sinArg32) ** 2))))
+                - 4.0 * (CosQu13_mod
+                         * SinSq12_mod * CosSq12_mod
+                         * SinSqDelta21_mod)
+                - 4.0 * (SinSq13_mod * CosSq13_mod
+                         * (CosSq12_mod * SinSqDelta31_mod
+                            + SinSq12_mod * SinSqDelta32_mod)))
 
 
 class NueSurvivalProbabilityKhan(Node):
@@ -118,8 +130,8 @@ class NueSurvivalProbabilityKhan(Node):
     inputs:
         `E`: array of the energies
         `L`: the distance
-        `SinSq2Theta12`: sin²2θ₁₂
-        `SinSq2Theta13`: sin²2θ₁₃
+        `SinSq2Theta12`: Sin²2θ₁₂
+        `SinSq2Theta13`: Sin²2θ₁₃
         `DeltaMSq21`: Δm²₂₁
         `DeltaMSq32` or `DeltaMSq31`: |Δm²₃₂| or |Δm²₃₁| depending on `leading_mass_splitting_3l_name`
         `nmo`: α - the mass ordering constant
@@ -146,7 +158,7 @@ class NueSurvivalProbabilityKhan(Node):
         "_DeltaMSq3lAbs",
         "_is_dm32_leading",
         "_nmo",
-        "_ElectronFraction",
+        "_ElectronToNucleonFraction",
         "_density",
         "_surprob_arg_conversion_factor",
     )
@@ -159,7 +171,7 @@ class NueSurvivalProbabilityKhan(Node):
     _DeltaMSq32: NDArray
     _SinSq2Theta12: NDArray
     _SinSq2Theta13: NDArray
-    _ElectronFraction: NDArray
+    _ElectronToNucleonFraction: NDArray
     _density: NDArray
     _surprob_arg_conversion_factor: NDArray
     _result: NDArray
@@ -184,7 +196,7 @@ class NueSurvivalProbabilityKhan(Node):
                 leading_mass_splitting_3l_name,
                 "DeltaMSq21",
                 "nmo",
-                "ElectronFraction",
+                "ElectronToNucleonFraction",
                 "density",
                 "surprobArgConversion",
             ),
@@ -199,7 +211,7 @@ class NueSurvivalProbabilityKhan(Node):
         self._add_input("DeltaMSq21", positional=False)
         self._add_input(leading_mass_splitting_3l_name, positional=False)
         self._add_input("nmo", positional=False)
-        self._add_input("ElectronFraction", positional=False)
+        self._add_input("ElectronToNucleonFraction", positional=False)
         self._add_input("density", positional=False)
         try:
             self._baseline_scale = {"km": 1, "m": 1.0e-3}[distance_unit]
@@ -217,7 +229,7 @@ class NueSurvivalProbabilityKhan(Node):
                 "DeltaMSq21",
                 "DeltaMSq32" if self._is_dm32_leading else "DeltaMSq31",
                 "nmo",
-                "ElectronFraction",
+                "ElectronToNucleonFraction",
                 "density",
             ),
             (1,),
@@ -243,7 +255,7 @@ class NueSurvivalProbabilityKhan(Node):
             self._DeltaMSq3lAbs,
             self._is_dm32_leading,
             self._nmo,
-            self._ElectronFraction,
+            self._ElectronToNucleonFraction,
             self._density,
             self._surprob_arg_conversion_factor,
         )
@@ -262,7 +274,7 @@ class NueSurvivalProbabilityKhan(Node):
             "DeltaMSq32" if self._is_dm32_leading else "DeltaMSq31"
         ]._data
         self._nmo = self.inputs["nmo"]._data
-        self._ElectronFraction = self.inputs["ElectronFraction"]._data
+        self._ElectronToNucleonFraction = self.inputs["ElectronToNucleonFraction"]._data
         self._density = self.inputs["density"]._data
 
         if conversion_input := self.inputs.get("surprobArgConversion"):

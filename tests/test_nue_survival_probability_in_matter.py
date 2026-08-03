@@ -19,7 +19,7 @@ from dgm_reactor_neutrino.nue_survival_probability import _surprobArgConversion
     (None, _surprobArgConversion, 0.9 * _surprobArgConversion),
 )
 @mark.parametrize("density", (0, 2.5))
-def test_NueSurvivalProbabilityMatter(
+def test_NueSurvivalProbabilityKhan(
     debug_graph,
     test_name,
     L,
@@ -34,11 +34,11 @@ def test_NueSurvivalProbabilityMatter(
     DeltaMSq3lAbs = 2.45 * 1e-3  # eV^2
     SinSq2Theta12 = 3.1 * 1e-1  # [-]
     SinSq2Theta13 = 2.241 * 1e-2  # [-]
-    ElectronFraction = 0.5
+    ElectronToNucleonFraction = 0.5
     is_dm32_leading = leading_mass_splitting_3l_name == "DeltaMSq32"
     is_dm31_leading = leading_mass_splitting_3l_name == "DeltaMSq31"
 
-    with Graph(close_on_exit=True) as graph:
+    with Graph(close_on_exit=True, debug=debug_graph) as graph:
         surprob = NueSurvivalProbabilityKhan(
             "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
         )
@@ -51,7 +51,7 @@ def test_NueSurvivalProbabilityMatter(
         )
         (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12], mode="fill")) >> surprob("SinSq2Theta12")
         (in_t13 := Array("SinSq2Theta13", [SinSq2Theta13], mode="fill")) >> surprob("SinSq2Theta13")
-        (in_ef := Array("ElectronFraction", [ElectronFraction], mode="fill")) >> surprob("ElectronFraction")
+        (in_ef := Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill")) >> surprob("ElectronToNucleonFraction")
         (in_dens := Array("density", [density], mode="fill")) >> surprob("density")
         if conversionFactor is not None:
             (
@@ -88,13 +88,6 @@ def test_NueSurvivalProbabilityMatter(
                 nmo * DeltaMSq3lAbs - DeltaMSq21 * is_dm31_leading
         )  # Δm²₃₂ = α*|Δm²₃ₗ| - β*Δm²₂₁
 
-        # if is_dm32_leading:
-        #     _DeltaMSq32 = nmo * DeltaMSq3lAbs  # Δm²₃₂ = α*|Δm²₃ₗ|
-        #     _DeltaMSq31 = _DeltaMSq32 + DeltaMSq21  # Δm²₃₁ = Δm²₃₂ + Δm²₂₁
-        # else:
-        #     _DeltaMSq31 = nmo * DeltaMSq3lAbs  # Δm²₃₁ = α*|Δm²₃ₗ|
-        #     _DeltaMSq32 = _DeltaMSq31 - DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
-
         _SinSqTheta12 = 0.5 * (1.0 - sqrt(1.0 - SinSq2Theta12))
         _CosSqTheta12 = 1.0 - _SinSqTheta12
         _SinSqTheta13 = 0.5 * (1.0 - sqrt(1.0 - SinSq2Theta13))
@@ -105,7 +98,7 @@ def test_NueSurvivalProbabilityMatter(
 
         _DeltaMSqee = _CosSqTheta12 * _DeltaMSq31 + _SinSqTheta12 * _DeltaMSq32
 
-        _density_const = (ElectronFraction / aem_g * (-2.0) * sqrt(2.0) * Gf *
+        _density_const = (ElectronToNucleonFraction / aem_g * (-2.0) * sqrt(2.0) * Gf *
                           GF_CONVERSION / MeV_to_eV)
         _msw_factor = _density_const * density
         _a = _msw_factor * E
@@ -158,3 +151,148 @@ def test_NueSurvivalProbabilityMatter(
         close=True,
         save=f"{output_path}/{test_name}_plot.pdf",
     )
+
+    nmo *= -1
+    in_nmo.outputs[0].set(nmo)
+    assert surprob.tainted is True
+    res = surprob_fcn()
+    assert allclose(surprob.outputs[0].data, res, rtol=0, atol=atol)
+    assert surprob.tainted is False
+
+    DeltaMSq21 *= 1.1
+    in_Dm21.outputs[0].set(DeltaMSq21)
+    assert surprob.tainted is True
+    res = surprob_fcn()
+    assert allclose(surprob.outputs[0].data, res, rtol=0, atol=atol)
+    assert surprob.tainted is False
+
+    DeltaMSq3lAbs *= 0.9
+    in_Dm3l.outputs[0].set(DeltaMSq3lAbs)
+    assert surprob.tainted is True
+    res = surprob_fcn()
+    assert allclose(surprob.outputs[0].data, res, rtol=0, atol=atol)
+    assert surprob.tainted is False
+
+    SinSq2Theta12 *= 1.2
+    in_t12.outputs[0].set(SinSq2Theta12)
+    assert surprob.tainted is True
+    res = surprob_fcn()
+    assert allclose(surprob.outputs[0].data, res, rtol=0, atol=atol)
+    assert surprob.tainted is False
+
+    SinSq2Theta13 += 0.1
+    in_t13.outputs[0].set(SinSq2Theta13)
+    assert surprob.tainted is True
+    res = surprob_fcn()
+    assert allclose(surprob.outputs[0].data, res, rtol=0, atol=atol)
+    assert surprob.tainted is False
+
+    L *= 10
+    in_L.outputs[0].set(L)
+    assert surprob.tainted is True
+    res = surprob_fcn()
+    assert allclose(surprob.outputs[0].data, res, rtol=0, atol=atol)
+    assert surprob.tainted is False
+
+    E *= 15
+    in_E.outputs[0].set(E)
+    assert surprob.tainted is True
+    res = surprob_fcn()
+    assert allclose(surprob.outputs[0].data, res, rtol=0, atol=atol)
+    assert surprob.tainted is False
+
+    if in_conversion is not None:
+        conversionFactor *= 1.01
+        in_conversion.outputs[0].set(conversionFactor)
+        assert surprob.tainted is True
+        res = surprob_fcn()
+        assert allclose(surprob.outputs[0].data, res, rtol=0, atol=atol)
+        assert surprob.tainted is False
+
+    savegraph(graph, f"{output_path}/{test_name}.png")
+
+
+@mark.parametrize("nmo", (1, -1))  # mass ordering
+@mark.parametrize(
+    "L,leading_mass_splitting_3l_name", ((2, "DeltaMSq32"), (52, "DeltaMSq31"), (180, "DeltaMSq32"))
+)  # km
+@mark.parametrize(
+    "conversionFactor",
+    (None, _surprobArgConversion, 0.9 * _surprobArgConversion),
+)
+def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
+        debug_graph,
+        test_name,
+        L,
+        leading_mass_splitting_3l_name,
+        nmo,
+        conversionFactor,
+        output_path: str,
+):
+    E = geomspace(1, 100, 1000)  # MeV
+    DeltaMSq21 = 7.39 * 1e-5  # eV^2
+    DeltaMSq3lAbs = 2.45 * 1e-3  # eV^2
+    SinSq2Theta12 = 3.1 * 1e-1  # [-]
+    SinSq2Theta13 = 2.241 * 1e-2  # [-]
+    ElectronToNucleonFraction = 0.5
+    density = 0.0
+
+    with Graph(close_on_exit=True, debug=debug_graph) as graph_Khan:
+        surprobKhan = NueSurvivalProbabilityKhan(
+            "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
+        )
+        Array("E", E, mode="fill") >> surprobKhan("E")
+        Array("L", [L], mode="fill") >> surprobKhan("L")
+        Array("nmo", [nmo], mode="fill") >> surprobKhan("nmo")
+        Array("DeltaMSq21", [DeltaMSq21], mode="fill") >> surprobKhan("DeltaMSq21")
+        Array(leading_mass_splitting_3l_name, [DeltaMSq3lAbs], mode="fill") >> surprobKhan(
+            leading_mass_splitting_3l_name
+        )
+        Array("SinSq2Theta12", [SinSq2Theta12], mode="fill") >> surprobKhan("SinSq2Theta12")
+        Array("SinSq2Theta13", [SinSq2Theta13], mode="fill") >> surprobKhan("SinSq2Theta13")
+        Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill") >> surprobKhan("ElectronToNucleonFraction")
+        Array("density", [density], mode="fill") >> surprobKhan("density")
+        if conversionFactor is not None:
+            (
+                Array("surprobArgConversion", [conversionFactor], mode="fill")
+            ) >> surprobKhan("surprobArgConversion")
+
+    from dgm_reactor_neutrino.nue_survival_probability import NueSurvivalProbability
+
+    with Graph(close_on_exit=True, debug=debug_graph) as graph:
+        surprob = NueSurvivalProbability(
+            "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name
+        )
+        Array("E", E, mode="fill") >> surprob("E")
+        Array("L", [L], mode="fill") >> surprob("L")
+        Array("nmo", [nmo], mode="fill") >> surprob("nmo")
+        Array("DeltaMSq21", [DeltaMSq21], mode="fill") >> surprob("DeltaMSq21")
+        Array(leading_mass_splitting_3l_name, [DeltaMSq3lAbs], mode="fill") >> surprob(
+            leading_mass_splitting_3l_name
+        )
+        Array("SinSq2Theta12", [SinSq2Theta12], mode="fill") >> surprob("SinSq2Theta12")
+        Array("SinSq2Theta13", [SinSq2Theta13], mode="fill") >> surprob("SinSq2Theta13")
+        if conversionFactor is not None:
+            (
+                Array("surprobArgConversion", [conversionFactor], mode="fill")
+            ) >> surprob("surprobArgConversion")
+
+    atol = finfo("d").resolution * 4
+    assert allclose(surprob.outputs[0].data, surprobKhan.outputs[0].data, rtol=0, atol=atol)
+
+    import matplotlib.pyplot as plt
+
+    fig, axs = plt.subplots(3, 1, height_ratios=[2, 1, 1], sharex=True)
+
+    axs[0].plot(E, surprob.outputs[0].data, label="common")
+    axs[0].plot(E, surprobKhan.outputs[0].data, label="Khan")
+    axs[1].plot(E, surprobKhan.outputs[0].data / surprob.outputs[0].data - 1)
+    axs[2].plot(E, surprobKhan.outputs[0].data - surprob.outputs[0].data)
+    axs[0].set_ylabel("Entries")
+    axs[1].set_xlabel("E, MeV")
+    axs[1].set_ylabel("ratio - 1")
+    axs[1].set_xlabel("E, MeV")
+    axs[2].set_ylabel("difference")
+    axs[0].legend(loc="upper right")
+    plt.subplots_adjust(hspace=0)
+    plt.savefig(f"{output_path}/{test_name}.pdf")
