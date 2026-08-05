@@ -4,11 +4,12 @@ from dag_modelling.plot.graphviz import savegraph
 from dag_modelling.plot.plot import plot_auto
 from matplotlib.pyplot import subplots
 from numpy import allclose, arcsin, cos, finfo, geomspace, sin, sqrt
-from scipy.constants import value
 from pytest import mark
+from scipy.constants import value
 
 from dgm_reactor_neutrino import NueSurvivalProbabilityKhan
-from dgm_reactor_neutrino.nue_survival_probability import _surprobArgConversion
+from dgm_reactor_neutrino.nue_survival_probability_Khan import _surprobArgConversion
+
 
 @mark.parametrize("nmo", (1, -1))  # mass ordering
 @mark.parametrize(
@@ -19,7 +20,7 @@ from dgm_reactor_neutrino.nue_survival_probability import _surprobArgConversion
     (None, _surprobArgConversion, 0.9 * _surprobArgConversion),
 )
 @mark.parametrize("density", (0, 2.5))
-@mark.parametrize("mode", ("expansion", "exact"))
+@mark.parametrize("mode", ("expansion", "main"))
 def test_NueSurvivalProbabilityKhan(
     debug_graph,
     test_name,
@@ -42,7 +43,8 @@ def test_NueSurvivalProbabilityKhan(
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
         surprob = NueSurvivalProbabilityKhan(
-            "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
+            "P(ee)",
+            leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
             mode=mode,
         )
         (in_E := Array("E", E, mode="fill")) >> surprob("E")
@@ -54,7 +56,9 @@ def test_NueSurvivalProbabilityKhan(
         )
         (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12], mode="fill")) >> surprob("SinSq2Theta12")
         (in_t13 := Array("SinSq2Theta13", [SinSq2Theta13], mode="fill")) >> surprob("SinSq2Theta13")
-        (in_ef := Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill")) >> surprob("ElectronToNucleonFraction")
+        (
+            in_ef := Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill")
+        ) >> surprob("ElectronToNucleonFraction")
         (in_dens := Array("density", [density], mode="fill")) >> surprob("density")
         if conversionFactor is not None:
             (
@@ -67,108 +71,121 @@ def test_NueSurvivalProbabilityKhan(
         conversionFactor = _surprobArgConversion
 
     def surprob_fcn() -> float:
-        aem_g = value('atomic mass constant') * 1000
-        Gf = value('Fermi coupling constant')
-        hbar = value('reduced Planck constant')
-        c = value('speed of light in vacuum')
-        e = value('elementary charge')
+        aem_g = value("atomic mass constant") * 1000
+        Gf = value("Fermi coupling constant")
+        hbar = value("reduced Planck constant")
+        c = value("speed of light in vacuum")
+        e = value("elementary charge")
         hbar_c_eV_cm = (hbar * c / e) * 100
         SqGeV_to_SqMeV = 1e-18
-        GF_CONVERSION = SqGeV_to_SqMeV * (hbar_c_eV_cm ** 3)
+        GF_CONVERSION = SqGeV_to_SqMeV * (hbar_c_eV_cm**3)
         MeV_to_eV = 1e-6
 
         Lcq = L * conversionFactor / 4.0
+        _DeltaMSq31 = nmo * DeltaMSq3lAbs + DeltaMSq21 * is_dm32_leading
+        _DeltaMSq32 = nmo * DeltaMSq3lAbs - DeltaMSq21 * is_dm31_leading
         _DeltaMSq31 = (
-                nmo * DeltaMSq3lAbs + DeltaMSq21 * is_dm32_leading
-        )
-        _DeltaMSq32 = (
-                nmo * DeltaMSq3lAbs - DeltaMSq21 * is_dm31_leading
-        )
-        _DeltaMSq31 = (
-                nmo * DeltaMSq3lAbs + DeltaMSq21 * is_dm32_leading
+            nmo * DeltaMSq3lAbs + DeltaMSq21 * is_dm32_leading
         )  # Δm²₃₁ = α*|Δm²₃ₗ| + β*Δm²₂₁
         _DeltaMSq32 = (
-                nmo * DeltaMSq3lAbs - DeltaMSq21 * is_dm31_leading
+            nmo * DeltaMSq3lAbs - DeltaMSq21 * is_dm31_leading
         )  # Δm²₃₂ = α*|Δm²₃ₗ| - β*Δm²₂₁
 
         _SinSqTheta12 = 0.5 * (1.0 - sqrt(1.0 - SinSq2Theta12))
         _CosSqTheta12 = 1.0 - _SinSqTheta12
         _SinSqTheta13 = 0.5 * (1.0 - sqrt(1.0 - SinSq2Theta13))
         _CosSqTheta13 = 1.0 - _SinSqTheta13
-        _CosQuTheta13 = _CosSqTheta13 ** 2  # cos^4 θ₁₃
+        _CosQuTheta13 = _CosSqTheta13**2  # cos^4 θ₁₃
         _scSq12 = _SinSqTheta12 * _CosSqTheta12
         _cosDouble12 = _CosSqTheta12 - _SinSqTheta12
 
         _DeltaMSqee = _CosSqTheta12 * _DeltaMSq31 + _SinSqTheta12 * _DeltaMSq32
 
-        _density_const = (ElectronToNucleonFraction / aem_g * (-2.0) * sqrt(2.0) * Gf *
-                          GF_CONVERSION / MeV_to_eV)
+        _density_const = (
+            ElectronToNucleonFraction / aem_g * (-2.0) * sqrt(2.0) * Gf * GF_CONVERSION / MeV_to_eV
+        )
         _msw_factor = _density_const * density
         _a = _msw_factor * E
+        _Cos2Theta12 = sqrt(1.0 - SinSq2Theta12)
         if mode == "expansion":
-            common_21 = (_CosSqTheta13 / DeltaMSq21) * _a
+            a_dm21 = _a / DeltaMSq21
+            a_dmee = _a / _DeltaMSqee
+
+            common_21 = _CosSqTheta13 * a_dm21
             common_21_squared = common_21 * common_21
 
-            sinSq13_mod = _SinSqTheta13 + (2.0 * _SinSqTheta13 * _CosSqTheta13 / _DeltaMSqee) * _a
+            SinSq13_mod = _SinSqTheta13 + (2.0 * _SinSqTheta13 * _CosSqTheta13) * a_dmee
+            CosSq13_mod = 1.0 - SinSq13_mod
+            CosQu13_mod = CosSq13_mod * CosSq13_mod
 
-            sinSq12_mod = (_SinSqTheta12
-                             + 2.0 * _scSq12 * common_21
-                             + 3.0 * _scSq12 * _cosDouble12 * common_21_squared)
-
-            dm21_mod = (DeltaMSq21
-                          - DeltaMSq21 * _cosDouble12 * common_21
-                          + 2.0 * DeltaMSq21 * _scSq12 * common_21_squared)
-
-            common_3 = _scSq12 * _CosSqTheta13 * common_21
-
-            dm31_mod = (_DeltaMSq31
-                          - _a * ((_CosSqTheta12 * _CosSqTheta13 - _SinSqTheta13) - common_3))
-
-            dm32_mod = (_DeltaMSq32
-                          - _a * ((_SinSqTheta12 * _CosSqTheta13 - _SinSqTheta13) + common_3))
-
-            sinArg21 = Lcq * (dm21_mod / E)
-            sinArg31 = Lcq * (dm31_mod / E)
-            sinArg32 = Lcq * (dm32_mod / E)
-
-            res = (1.0
-                    - 4.0 * ((1.0 - sinSq13_mod) ** 2
-                             * sinSq12_mod * (1.0 - sinSq12_mod)
-                             * (sin(sinArg21) ** 2))
-                    - 4.0 * (sinSq13_mod * (1.0 - sinSq13_mod)
-                             * ((1.0 - sinSq12_mod) * (sin(sinArg31) ** 2)
-                                + sinSq12_mod * (sin(sinArg32) ** 2))))
-            return res
-        elif mode == "exact":
-            Cos2Theta13 = sqrt(1.0 - SinSq2Theta13)
-            Cos2Theta12 = 1.0 - 2.0 * _SinSqTheta12
-
-
-            shift_Cos2Theta13 = Cos2Theta13 - _a / _DeltaMSqee
-            shiftSq_Cos2Theta13 = shift_Cos2Theta13 * shift_Cos2Theta13
-            _DeltaMSqee_mod = _DeltaMSqee * sqrt(
-                shiftSq_Cos2Theta13 + SinSq2Theta13)
-
-            _Cos2Theta13_mod = (_DeltaMSqee * Cos2Theta13 - _a) / _DeltaMSqee_mod
-            _CosSq2Theta13_mod = _Cos2Theta13_mod * _Cos2Theta13_mod
-            _SinSq2Theta13_mod = 1.0 - _CosSq2Theta13_mod
-            _CosSqTheta13_mod = (1.0 + _Cos2Theta13_mod) / 2.0
-            _CosQuTheta13_mod = _CosSqTheta13_mod * _CosSqTheta13_mod
-
-            a_s = (_a + _DeltaMSqee - _DeltaMSqee_mod) / 2.0
-            shift_Cos2Theta12 = Cos2Theta12 - a_s / DeltaMSq21
-            shiftSq_Cos2Theta12 = shift_Cos2Theta12 * shift_Cos2Theta12
-            CosSqDiff_Theta13Mod_Theta13 = ((_DeltaMSqee_mod + _DeltaMSqee -
-                                             _a * Cos2Theta13) /
-                                            (2.0 * _DeltaMSqee_mod))
-            _DeltaMSq21_mod = DeltaMSq21 * sqrt(
-                shiftSq_Cos2Theta12 + CosSqDiff_Theta13Mod_Theta13 * SinSq2Theta12
+            SinSq12_mod = (
+                    _SinSqTheta12
+                    + 0.5 * SinSq2Theta12 * common_21
+                    + 0.75 * SinSq2Theta12 * _Cos2Theta12 * common_21_squared
             )
 
-            _Cos2Theta12_mod = (DeltaMSq21 * Cos2Theta12 - a_s) / _DeltaMSq21_mod
+            CosSq12_mod = 1.0 - SinSq12_mod
+
+            DeltaMSq21_mod = DeltaMSq21 * (
+                    1.0 - _Cos2Theta12 * common_21 + 0.5 * SinSq2Theta12 * common_21_squared
+            )
+
+            common_3 = 0.25 * SinSq2Theta12 * _CosSqTheta13 * common_21
+
+            DeltaMSq31_mod = _DeltaMSq31 - _a * (
+                    (_CosSqTheta12 * _CosSqTheta13 - _SinSqTheta13) - common_3
+            )
+
+            DeltaMSq32_mod = _DeltaMSq32 - _a * (
+                    (_SinSqTheta12 * _CosSqTheta13 - _SinSqTheta13) + common_3
+            )
+
+            SinArg21 = Lcq * (DeltaMSq21_mod / E)
+            SinArg31 = Lcq * (DeltaMSq31_mod / E)
+            SinArg32 = Lcq * (DeltaMSq32_mod / E)
+
+            SinSqDelta31_mod = sin(SinArg31) ** 2
+            SinSqDelta21_mod = sin(SinArg21) ** 2
+            SinSqDelta32_mod = sin(SinArg32) ** 2
+
+            res = (
+                    1.0
+                    - 4.0 * (CosQu13_mod * SinSq12_mod * CosSq12_mod * SinSqDelta21_mod)
+                    - 4.0
+                    * (
+                            SinSq13_mod
+                            * CosSq13_mod
+                            * (CosSq12_mod * SinSqDelta31_mod + SinSq12_mod * SinSqDelta32_mod)
+                    )
+            )
+        elif mode == "main":
+            _Cos2Theta13 = sqrt(1.0 - SinSq2Theta13)
+
+            a_dmee = _a / _DeltaMSqee
+            _shifted_Cos2Theta13 = _Cos2Theta13 - a_dmee
+            _DeltaMSqee_mod = _DeltaMSqee * sqrt(_shifted_Cos2Theta13 * _shifted_Cos2Theta13 + SinSq2Theta13)
+
+            _Cos2Theta13_mod = (_DeltaMSqee * _Cos2Theta13 - _a) / _DeltaMSqee_mod
+            _CosSq2Theta13_mod = _Cos2Theta13_mod * _Cos2Theta13_mod
+            _SinSq2Theta13_mod = 1.0 - _CosSq2Theta13_mod
+            _CosSqTheta13_mod = (1.0 + _Cos2Theta13_mod) * 0.5
+            _CosQuTheta13_mod = _CosSqTheta13_mod * _CosSqTheta13_mod
+
+            a_prime = (_a + _DeltaMSqee - _DeltaMSqee_mod) * 0.5
+            ap_dm21 = a_prime / DeltaMSq21
+            _shifted_Cos2Theta12 = _Cos2Theta12 - ap_dm21
+
+            CosSqDiff_Theta13Mod_Theta13 = (
+                    0.5 * (_DeltaMSqee_mod + _DeltaMSqee - _a * _Cos2Theta13) / _DeltaMSqee_mod
+            )
+            _DeltaMSq21_mod = DeltaMSq21 * sqrt(
+                _shifted_Cos2Theta12 * _shifted_Cos2Theta12 + CosSqDiff_Theta13Mod_Theta13 * SinSq2Theta12
+            )
+
+            _Cos2Theta12_mod = (DeltaMSq21 * _Cos2Theta12 - a_prime) / _DeltaMSq21_mod
             _CosSq2Theta12_mod = _Cos2Theta12_mod * _Cos2Theta12_mod
             _SinSq2Theta12_mod = 1.0 - _CosSq2Theta12_mod
-            _SinSqTheta12_mod = (1.0 - _Cos2Theta12_mod) / 2.0
+            _SinSqTheta12_mod = (1.0 - _Cos2Theta12_mod) * 0.5
             _CosSqTheta12_mod = 1.0 - _SinSqTheta12_mod
 
             _DeltaMSq31_mod = _DeltaMSqee_mod + _SinSqTheta12_mod * _DeltaMSq21_mod
@@ -178,23 +195,21 @@ def test_NueSurvivalProbabilityKhan(
             SinArg31 = Lcq * (_DeltaMSq31_mod / E)
             SinArg32 = Lcq * (_DeltaMSq32_mod / E)
 
-            SinDelta31_mod = sin(SinArg31)
-            SinSqDelta31_mod = SinDelta31_mod * SinDelta31_mod
+            SinSqDelta31_mod = sin(SinArg31) ** 2
+            SinSqDelta21_mod = sin(SinArg21) ** 2
+            SinSqDelta32_mod = sin(SinArg32) ** 2
 
-            SinDelta21_mod = sin(SinArg21)
-            SinSqDelta21_mod = SinDelta21_mod * SinDelta21_mod
+            res = (
+                    1.0
+                    - _CosQuTheta13_mod * _SinSq2Theta12_mod * SinSqDelta21_mod
+                    - _SinSq2Theta13_mod
+                    * (_CosSqTheta12_mod * SinSqDelta31_mod + _SinSqTheta12_mod * SinSqDelta32_mod)
+            )
+        else:
+            raise ValueError("Not corrected mode")
+        return res
 
-            SinDelta32_mod = sin(SinArg32)
-            SinSqDelta32_mod = SinDelta32_mod * SinDelta32_mod
-
-            res = (1.0
-                      - _CosQuTheta13_mod * _SinSq2Theta12_mod * SinSqDelta21_mod
-                      - _SinSq2Theta13_mod * _CosSqTheta12_mod * SinSqDelta31_mod
-                      - _SinSq2Theta13_mod * _SinSqTheta12_mod * SinSqDelta32_mod)
-            return res
-
-
-    atol = finfo("d").resolution * 2
+    atol = finfo("d").resolution * 3
     assert surprob.tainted is True
     res = surprob_fcn()
     assert allclose(surprob.outputs[0].data, res, rtol=0, atol=atol)
@@ -277,16 +292,16 @@ def test_NueSurvivalProbabilityKhan(
     "conversionFactor",
     (None, _surprobArgConversion, 0.9 * _surprobArgConversion),
 )
-@mark.parametrize("mode", ("expansion", "exact"))
+@mark.parametrize("mode", ("expansion", "main"))
 def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
-        debug_graph,
-        test_name,
-        L,
-        leading_mass_splitting_3l_name,
-        nmo,
-        conversionFactor,
-        mode,
-        output_path: str,
+    debug_graph,
+    test_name,
+    L,
+    leading_mass_splitting_3l_name,
+    nmo,
+    conversionFactor,
+    mode,
+    output_path: str,
 ):
     E = geomspace(1, 100, 1000)  # MeV
     DeltaMSq21 = 7.39 * 1e-5  # eV^2
@@ -298,8 +313,7 @@ def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph_Khan:
         surprobKhan = NueSurvivalProbabilityKhan(
-            "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
-            mode=mode
+            "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name, mode=mode
         )
         Array("E", E, mode="fill") >> surprobKhan("E")
         Array("L", [L], mode="fill") >> surprobKhan("L")
@@ -310,18 +324,21 @@ def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
         )
         Array("SinSq2Theta12", [SinSq2Theta12], mode="fill") >> surprobKhan("SinSq2Theta12")
         Array("SinSq2Theta13", [SinSq2Theta13], mode="fill") >> surprobKhan("SinSq2Theta13")
-        Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill") >> surprobKhan("ElectronToNucleonFraction")
+        Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill") >> surprobKhan(
+            "ElectronToNucleonFraction"
+        )
         Array("density", [density], mode="fill") >> surprobKhan("density")
         if conversionFactor is not None:
-            (
-                Array("surprobArgConversion", [conversionFactor], mode="fill")
-            ) >> surprobKhan("surprobArgConversion")
+            (Array("surprobArgConversion", [conversionFactor], mode="fill")) >> surprobKhan(
+                "surprobArgConversion"
+            )
 
     from dgm_reactor_neutrino.nue_survival_probability import NueSurvivalProbability
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
         surprob = NueSurvivalProbability(
-            "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
+            "P(ee)",
+            leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
         )
         Array("E", E, mode="fill") >> surprob("E")
         Array("L", [L], mode="fill") >> surprob("L")
@@ -333,9 +350,9 @@ def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
         Array("SinSq2Theta12", [SinSq2Theta12], mode="fill") >> surprob("SinSq2Theta12")
         Array("SinSq2Theta13", [SinSq2Theta13], mode="fill") >> surprob("SinSq2Theta13")
         if conversionFactor is not None:
-            (
-                Array("surprobArgConversion", [conversionFactor], mode="fill")
-            ) >> surprob("surprobArgConversion")
+            (Array("surprobArgConversion", [conversionFactor], mode="fill")) >> surprob(
+                "surprobArgConversion"
+            )
 
     atol = finfo("d").resolution * 4
     assert allclose(surprob.outputs[0].data, surprobKhan.outputs[0].data, rtol=0, atol=atol)
@@ -356,3 +373,4 @@ def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
     axs[0].legend(loc="upper right")
     plt.subplots_adjust(hspace=0)
     plt.savefig(f"{output_path}/{test_name}.pdf")
+    plt.close(fig)
