@@ -377,3 +377,95 @@ def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
     plt.subplots_adjust(hspace=0)
     plt.savefig(f"{output_path}/{test_name}.pdf")
     plt.close(fig)
+
+
+@mark.parametrize("nmo", (1, -1))  # mass ordering
+@mark.parametrize(
+    "L,leading_mass_splitting_3l_name", ((2, "DeltaMSq32"), (52, "DeltaMSq31"), (180, "DeltaMSq32"))
+)  # km
+@mark.parametrize(
+    "conversionFactor",
+    (None, _surprobArgConversion, 0.9 * _surprobArgConversion),
+)
+@mark.parametrize("density", (0, 2.5))
+def test_crosscheck_NueSurvivalProbabilityKhan(
+    debug_graph,
+    test_name,
+    L,
+    leading_mass_splitting_3l_name,
+    nmo,
+    conversionFactor,
+    density,
+    output_path: str,
+):
+    E = geomspace(1, 100, 1000)  # MeV
+    DeltaMSq21 = 7.39 * 1e-5  # eV^2
+    DeltaMSq3lAbs = 2.45 * 1e-3  # eV^2
+    SinSq2Theta12 = 3.1 * 1e-1  # [-]
+    SinSq2Theta13 = 2.241 * 1e-2  # [-]
+    ElectronToNucleonFraction = 0.5
+
+    with Graph(close_on_exit=True, debug=debug_graph) as graph_Khan:
+        surprobMain = NueSurvivalProbabilityKhan(
+            "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name, mode="main",
+        )
+        Array("E", E, mode="fill") >> surprobMain("E")
+        Array("L", [L], mode="fill") >> surprobMain("L")
+        Array("nmo", [nmo], mode="fill") >> surprobMain("nmo")
+        Array("DeltaMSq21", [DeltaMSq21], mode="fill") >> surprobMain("DeltaMSq21")
+        Array(leading_mass_splitting_3l_name, [DeltaMSq3lAbs], mode="fill") >> surprobMain(
+            leading_mass_splitting_3l_name
+        )
+        Array("SinSq2Theta12", [SinSq2Theta12], mode="fill") >> surprobMain("SinSq2Theta12")
+        Array("SinSq2Theta13", [SinSq2Theta13], mode="fill") >> surprobMain("SinSq2Theta13")
+        Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill") >> surprobMain(
+            "ElectronToNucleonFraction"
+        )
+        Array("density", [density], mode="fill") >> surprobMain("density")
+        if conversionFactor is not None:
+            (Array("surprobArgConversion", [conversionFactor], mode="fill")) >> surprobMain(
+                "surprobArgConversion"
+            )
+
+    with Graph(close_on_exit=True, debug=debug_graph) as graph_Khan:
+        surprobExpansion = NueSurvivalProbabilityKhan(
+            "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name, mode="expansion",
+        )
+        Array("E", E, mode="fill") >> surprobExpansion("E")
+        Array("L", [L], mode="fill") >> surprobExpansion("L")
+        Array("nmo", [nmo], mode="fill") >> surprobExpansion("nmo")
+        Array("DeltaMSq21", [DeltaMSq21], mode="fill") >> surprobExpansion("DeltaMSq21")
+        Array(leading_mass_splitting_3l_name, [DeltaMSq3lAbs], mode="fill") >> surprobExpansion(
+            leading_mass_splitting_3l_name
+        )
+        Array("SinSq2Theta12", [SinSq2Theta12], mode="fill") >> surprobExpansion("SinSq2Theta12")
+        Array("SinSq2Theta13", [SinSq2Theta13], mode="fill") >> surprobExpansion("SinSq2Theta13")
+        Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill") >> surprobExpansion(
+            "ElectronToNucleonFraction"
+        )
+        Array("density", [density], mode="fill") >> surprobExpansion("density")
+        if conversionFactor is not None:
+            (Array("surprobArgConversion", [conversionFactor], mode="fill")) >> surprobExpansion(
+                "surprobArgConversion"
+            )
+
+    atol = 1e-3
+    assert allclose(surprobExpansion.outputs[0].data, surprobMain.outputs[0].data, rtol=0, atol=atol)
+
+    import matplotlib.pyplot as plt
+
+    fig, axs = plt.subplots(3, 1, height_ratios=[2, 1, 1], sharex=True)
+
+    axs[0].plot(E, surprobExpansion.outputs[0].data, label="expansion")
+    axs[0].plot(E, surprobMain.outputs[0].data, label="exact")
+    axs[1].plot(E, surprobMain.outputs[0].data / surprobExpansion.outputs[0].data - 1)
+    axs[2].plot(E, surprobMain.outputs[0].data - surprobExpansion.outputs[0].data)
+    axs[0].set_ylabel("Entries")
+    axs[1].set_xlabel("E, MeV")
+    axs[1].set_ylabel("ratio - 1")
+    axs[1].set_xlabel("E, MeV")
+    axs[2].set_ylabel("difference")
+    axs[0].legend(loc="upper right")
+    plt.subplots_adjust(hspace=0)
+    plt.savefig(f"{output_path}/{test_name}.pdf")
+    plt.close(fig)
