@@ -119,25 +119,25 @@ def test_NueSurvivalProbabilityKhan(
             CosQu13_mod = CosSq13_mod * CosSq13_mod
 
             SinSq12_mod = (
-                    _SinSqTheta12
-                    + 0.5 * SinSq2Theta12 * common_21
-                    + 0.75 * SinSq2Theta12 * _Cos2Theta12 * common_21_squared
+                _SinSqTheta12
+                + 0.5 * SinSq2Theta12 * common_21
+                + 0.75 * SinSq2Theta12 * _Cos2Theta12 * common_21_squared
             )
 
             CosSq12_mod = 1.0 - SinSq12_mod
 
             DeltaMSq21_mod = DeltaMSq21 * (
-                    1.0 - _Cos2Theta12 * common_21 + 0.5 * SinSq2Theta12 * common_21_squared
+                1.0 - _Cos2Theta12 * common_21 + 0.5 * SinSq2Theta12 * common_21_squared
             )
 
             common_3 = 0.25 * SinSq2Theta12 * _CosSqTheta13 * common_21
 
             DeltaMSq31_mod = _DeltaMSq31 - _a * (
-                    (_CosSqTheta12 * _CosSqTheta13 - _SinSqTheta13) - common_3
+                (_CosSqTheta12 * _CosSqTheta13 - _SinSqTheta13) - common_3
             )
 
             DeltaMSq32_mod = _DeltaMSq32 - _a * (
-                    (_SinSqTheta12 * _CosSqTheta13 - _SinSqTheta13) + common_3
+                (_SinSqTheta12 * _CosSqTheta13 - _SinSqTheta13) + common_3
             )
 
             SinArg21 = Lcq * (DeltaMSq21_mod / E)
@@ -149,21 +149,23 @@ def test_NueSurvivalProbabilityKhan(
             SinSqDelta32_mod = sin(SinArg32) ** 2
 
             res = (
-                    1.0
-                    - 4.0 * (CosQu13_mod * SinSq12_mod * CosSq12_mod * SinSqDelta21_mod)
-                    - 4.0
-                    * (
-                            SinSq13_mod
-                            * CosSq13_mod
-                            * (CosSq12_mod * SinSqDelta31_mod + SinSq12_mod * SinSqDelta32_mod)
-                    )
+                1.0
+                - 4.0 * (CosQu13_mod * SinSq12_mod * CosSq12_mod * SinSqDelta21_mod)
+                - 4.0
+                * (
+                    SinSq13_mod
+                    * CosSq13_mod
+                    * (CosSq12_mod * SinSqDelta31_mod + SinSq12_mod * SinSqDelta32_mod)
+                )
             )
         elif mode == "main":
             _Cos2Theta13 = sqrt(1.0 - SinSq2Theta13)
 
             a_dmee = _a / _DeltaMSqee
             _shifted_Cos2Theta13 = _Cos2Theta13 - a_dmee
-            _DeltaMSqee_mod = _DeltaMSqee * sqrt(_shifted_Cos2Theta13 * _shifted_Cos2Theta13 + SinSq2Theta13)
+            _DeltaMSqee_mod = _DeltaMSqee * sqrt(
+                _shifted_Cos2Theta13 * _shifted_Cos2Theta13 + SinSq2Theta13
+            )
 
             _Cos2Theta13_mod = (_DeltaMSqee * _Cos2Theta13 - _a) / _DeltaMSqee_mod
             _CosSq2Theta13_mod = _Cos2Theta13_mod * _Cos2Theta13_mod
@@ -176,10 +178,11 @@ def test_NueSurvivalProbabilityKhan(
             _shifted_Cos2Theta12 = _Cos2Theta12 - ap_dm21
 
             CosSqDiff_Theta13Mod_Theta13 = (
-                    0.5 * (_DeltaMSqee_mod + _DeltaMSqee - _a * _Cos2Theta13) / _DeltaMSqee_mod
+                0.5 * (_DeltaMSqee_mod + _DeltaMSqee - _a * _Cos2Theta13) / _DeltaMSqee_mod
             )
             _DeltaMSq21_mod = DeltaMSq21 * sqrt(
-                _shifted_Cos2Theta12 * _shifted_Cos2Theta12 + CosSqDiff_Theta13Mod_Theta13 * SinSq2Theta12
+                _shifted_Cos2Theta12 * _shifted_Cos2Theta12
+                + CosSqDiff_Theta13Mod_Theta13 * SinSq2Theta12
             )
 
             _Cos2Theta12_mod = (DeltaMSq21 * _Cos2Theta12 - a_prime) / _DeltaMSq21_mod
@@ -200,10 +203,10 @@ def test_NueSurvivalProbabilityKhan(
             SinSqDelta32_mod = sin(SinArg32) ** 2
 
             res = (
-                    1.0
-                    - _CosQuTheta13_mod * _SinSq2Theta12_mod * SinSqDelta21_mod
-                    - _SinSq2Theta13_mod
-                    * (_CosSqTheta12_mod * SinSqDelta31_mod + _SinSqTheta12_mod * SinSqDelta32_mod)
+                1.0
+                - _CosQuTheta13_mod * _SinSq2Theta12_mod * SinSqDelta21_mod
+                - _SinSq2Theta13_mod
+                * (_CosSqTheta12_mod * SinSqDelta31_mod + _SinSqTheta12_mod * SinSqDelta32_mod)
             )
         else:
             raise ValueError("Not corrected mode")

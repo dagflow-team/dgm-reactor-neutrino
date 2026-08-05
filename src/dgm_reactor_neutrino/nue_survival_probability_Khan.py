@@ -56,13 +56,13 @@ def _sur_prob_expansion(
     _SinSq2Theta13 = SinSq2Theta13[0]
     _SinSq2Theta12 = SinSq2Theta12[0]
 
-    _Cos2Theta12 = sqrt(1.0 - _SinSq2Theta12)   # cos(2θ₁₂) = √(1 - sin²(2θ₁₂))
+    _Cos2Theta12 = sqrt(1.0 - _SinSq2Theta12)  # cos(2θ₁₂) = √(1 - sin²(2θ₁₂))
     _SinSqTheta12 = 0.5 * (1.0 - _Cos2Theta12)  # sin²(θ₁₂) = (1 - cos(2θ₁₂)) / 2
-    _CosSqTheta12 = 1.0 - _SinSqTheta12 # cos²(θ₁₂) = 1 - sin²(θ₁₂)
+    _CosSqTheta12 = 1.0 - _SinSqTheta12  # cos²(θ₁₂) = 1 - sin²(θ₁₂)
 
-    _Cos2Theta13 = sqrt(1.0 - _SinSq2Theta13)   # cos(2θ₁₃) = √(1 - sin²(2θ₁₃))
+    _Cos2Theta13 = sqrt(1.0 - _SinSq2Theta13)  # cos(2θ₁₃) = √(1 - sin²(2θ₁₃))
     _SinSqTheta13 = 0.5 * (1.0 - _Cos2Theta13)  # sin²(θ₁₃) = (1 - cos(2θ₁₃)) / 2
-    _CosSqTheta13 = 1.0 - _SinSqTheta13 # cos²(θ₁₃) = 1 - sin²(θ₁₃)
+    _CosSqTheta13 = 1.0 - _SinSqTheta13  # cos²(θ₁₃) = 1 - sin²(θ₁₃)
 
     if is_dm32_leading:
         _DeltaMSq32 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₂ = α*|Δm²₃ₗ|
@@ -101,8 +101,8 @@ def _sur_prob_expansion(
         common_21_squared = common_21 * common_21
 
         SinSq13_mod = _SinSqTheta13 + (2.0 * _SinSqTheta13 * _CosSqTheta13) * a_dmee
-        CosSq13_mod = 1.0 - SinSq13_mod # cos²(θ₁₃_mod) = 1 - sin²(θ₁₃_mod)
-        CosQu13_mod = CosSq13_mod * CosSq13_mod # cos⁴(θ₁₃_mod) = (cos²(θ₁₃_mod))²
+        CosSq13_mod = 1.0 - SinSq13_mod  # cos²(θ₁₃_mod) = 1 - sin²(θ₁₃_mod)
+        CosQu13_mod = CosSq13_mod * CosSq13_mod  # cos⁴(θ₁₃_mod) = (cos²(θ₁₃_mod))²
 
         SinSq12_mod = (
             _SinSqTheta12
@@ -110,7 +110,7 @@ def _sur_prob_expansion(
             + 0.75 * _SinSq2Theta12 * _Cos2Theta12 * common_21_squared
         )
 
-        CosSq12_mod = 1.0 - SinSq12_mod # cos²(θ₁₂_mod) = 1 - sin²(θ₁₂_mod)
+        CosSq12_mod = 1.0 - SinSq12_mod  # cos²(θ₁₂_mod) = 1 - sin²(θ₁₂_mod)
 
         DeltaMSq21_mod = _DeltaMSq21 * (
             1.0 - _Cos2Theta12 * common_21 + 0.5 * _SinSq2Theta12 * common_21_squared
@@ -210,12 +210,16 @@ def _sur_prob_main(
 
         a_dmee = A / _DeltaMSqee
         _shifted_Cos2Theta13 = _Cos2Theta13 - a_dmee
-        _DeltaMSqee_mod = _DeltaMSqee * sqrt(_shifted_Cos2Theta13 * _shifted_Cos2Theta13 + _SinSq2Theta13)
+        _DeltaMSqee_mod = _DeltaMSqee * sqrt(
+            _shifted_Cos2Theta13 * _shifted_Cos2Theta13 + _SinSq2Theta13
+        )
 
         _Cos2Theta13_mod = (_DeltaMSqee * _Cos2Theta13 - A) / _DeltaMSqee_mod
         _CosSq2Theta13_mod = _Cos2Theta13_mod * _Cos2Theta13_mod
-        _SinSq2Theta13_mod = 1.0 - _CosSq2Theta13_mod   # sin²(2θ₁₃_mod) = 1 - cos²(2θ₁₃_mod)
-        _CosSqTheta13_mod = (1.0 + _Cos2Theta13_mod) * 0.5  # cos²(θ₁₃_mod) = (1 + cos(2θ₁₃_mod)) / 2
+        _SinSq2Theta13_mod = 1.0 - _CosSq2Theta13_mod  # sin²(2θ₁₃_mod) = 1 - cos²(2θ₁₃_mod)
+        _CosSqTheta13_mod = (
+            1.0 + _Cos2Theta13_mod
+        ) * 0.5  # cos²(θ₁₃_mod) = (1 + cos(2θ₁₃_mod)) / 2
         _CosQuTheta13_mod = _CosSqTheta13_mod * _CosSqTheta13_mod
 
         a_prime = (A + _DeltaMSqee - _DeltaMSqee_mod) * 0.5
@@ -225,14 +229,19 @@ def _sur_prob_main(
             0.5 * (_DeltaMSqee_mod + _DeltaMSqee - A * _Cos2Theta13) / _DeltaMSqee_mod
         )
         _DeltaMSq21_mod = _DeltaMSq21 * sqrt(
-            _shifted_Cos2Theta12 * _shifted_Cos2Theta12 + CosSqDiff_Theta13Mod_Theta13 * _SinSq2Theta12
+            _shifted_Cos2Theta12 * _shifted_Cos2Theta12
+            + CosSqDiff_Theta13Mod_Theta13 * _SinSq2Theta12
         )
 
         _Cos2Theta12_mod = (_DeltaMSq21 * _Cos2Theta12 - a_prime) / _DeltaMSq21_mod
         _CosSq2Theta12_mod = _Cos2Theta12_mod * _Cos2Theta12_mod
-        _SinSq2Theta12_mod = 1.0 - _CosSq2Theta12_mod   # sin²(2θ₁₂_mod) = 1 - cos²(2θ₁₂_mod)
-        _SinSqTheta12_mod = (1.0 - _Cos2Theta12_mod) * 0.5  # sin²(θ₁₂_mod) = (1 - cos(2θ₁₂_mod)) / 2
-        _CosSqTheta12_mod = (1.0 + _Cos2Theta12_mod) * 0.5 # cos²(θ₁₂_mod) = (1 + cos(2θ₁₂_mod)) / 2
+        _SinSq2Theta12_mod = 1.0 - _CosSq2Theta12_mod  # sin²(2θ₁₂_mod) = 1 - cos²(2θ₁₂_mod)
+        _SinSqTheta12_mod = (
+            1.0 - _Cos2Theta12_mod
+        ) * 0.5  # sin²(θ₁₂_mod) = (1 - cos(2θ₁₂_mod)) / 2
+        _CosSqTheta12_mod = (
+            1.0 + _Cos2Theta12_mod
+        ) * 0.5  # cos²(θ₁₂_mod) = (1 + cos(2θ₁₂_mod)) / 2
 
         _DeltaMSq31_mod = _DeltaMSqee_mod + _SinSqTheta12_mod * _DeltaMSq21_mod
         _DeltaMSq32_mod = _DeltaMSq31_mod - _DeltaMSq21_mod
@@ -251,11 +260,12 @@ def _sur_prob_main(
         SinSqDelta32_mod = SinDelta32_mod * SinDelta32_mod
 
         out[i] = (
-                1.0
-                - _CosQuTheta13_mod * _SinSq2Theta12_mod * SinSqDelta21_mod
-                - _SinSq2Theta13_mod
-                * (_CosSqTheta12_mod * SinSqDelta31_mod + _SinSqTheta12_mod * SinSqDelta32_mod)
+            1.0
+            - _CosQuTheta13_mod * _SinSq2Theta12_mod * SinSqDelta21_mod
+            - _SinSq2Theta13_mod
+            * (_CosSqTheta12_mod * SinSqDelta31_mod + _SinSqTheta12_mod * SinSqDelta32_mod)
         )
+
 
 class NueSurvivalProbabilityKhan(Node):
     """
