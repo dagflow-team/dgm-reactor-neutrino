@@ -69,13 +69,13 @@ def _sur_prob_expansion(
         _DeltaMSq31 = _DeltaMSq32 + _DeltaMSq21  # Δm²₃₁ = Δm²₃₂ + Δm²₂₁
         _DeltaMSqee = (
             _DeltaMSq32 + _CosSqTheta12 * _DeltaMSq21
-        )  # Δm²_ee = Δm²_32 + cos²(θ₁₂) * Δm²_21
+        )  # Δm²(ee)= Δm²₃₂ + cos²(θ₁₂) * Δm²₂₁
     else:
         _DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₁ = α*|Δm²₃ₗ|
         _DeltaMSq32 = _DeltaMSq31 - _DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
         _DeltaMSqee = (
             _DeltaMSq31 - _SinSqTheta12 * _DeltaMSq21
-        )  # Δm²_ee = Δm²_31 - sin²(θ₁₂) * Δm²_21
+        )  # Δm²(ee)= Δm²₃₁ - sin²(θ₁₂) * Δm²₂₁
 
     _density_const = (
         ElectronToNucleonFraction[0]
@@ -183,13 +183,13 @@ def _sur_prob_main(
         _DeltaMSq31 = _DeltaMSq32 + _DeltaMSq21  # Δm²₃₁ = Δm²₃₂ + Δm²₂₁
         _DeltaMSqee = (
             _DeltaMSq32 + _CosSqTheta12 * _DeltaMSq21
-        )  # Δm²_ee = Δm²_32 + cos²(θ₁₂) * Δm²_21
+        )  # Δm²(ee)= Δm²₃₂ + cos²(θ₁₂) * Δm²₂₁
     else:
         _DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₁ = α*|Δm²₃ₗ|
         _DeltaMSq32 = _DeltaMSq31 - _DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
         _DeltaMSqee = (
             _DeltaMSq31 - _SinSqTheta12 * _DeltaMSq21
-        )  # Δm²_ee = Δm²_31 - sin²(θ₁₂) * Δm²_21
+        )  # Δm²(ee)= Δm²₃₁ - sin²(θ₁₂) * Δm²₂₁
 
     _density_const = (
         ElectronToNucleonFraction[0]
