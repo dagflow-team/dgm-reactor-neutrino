@@ -3,12 +3,11 @@ from dag_modelling.lib.common import Array
 from dag_modelling.plot.graphviz import savegraph
 from dag_modelling.plot.plot import plot_auto
 from matplotlib.pyplot import subplots
-from numpy import allclose, arcsin, cos, finfo, geomspace, sin, sqrt
+from numpy import allclose, finfo, geomspace, sin, sqrt
 from pytest import mark
 from scipy.constants import value
 
-from dgm_reactor_neutrino import NueSurvivalProbabilityKhan
-from dgm_reactor_neutrino.nue_survival_probability_Khan import _surprobArgConversion
+from dgm_reactor_neutrino.nue_survival_probability_khan import NueSurvivalProbabilityKhan, _surprobArgConversion
 
 
 @mark.parametrize("nmo", (1, -1))  # mass ordering
