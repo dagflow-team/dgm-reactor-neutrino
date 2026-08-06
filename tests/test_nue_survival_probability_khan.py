@@ -7,7 +7,10 @@ from numpy import allclose, finfo, geomspace, sin, sqrt
 from pytest import mark
 from scipy.constants import value
 
-from dgm_reactor_neutrino.nue_survival_probability_khan import NueSurvivalProbabilityKhan, _surprobArgConversion
+from dgm_reactor_neutrino.nue_survival_probability_khan import (
+    NueSurvivalProbabilityKhan,
+    _surprobArgConversion,
+)
 
 
 @mark.parametrize("nmo", (1, -1))  # mass ordering
@@ -406,7 +409,9 @@ def test_crosscheck_NueSurvivalProbabilityKhan(
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph_Khan:
         surprobMain = NueSurvivalProbabilityKhan(
-            "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name, mode="main",
+            "P(ee)",
+            leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
+            mode="main",
         )
         Array("E", E, mode="fill") >> surprobMain("E")
         Array("L", [L], mode="fill") >> surprobMain("L")
@@ -428,7 +433,9 @@ def test_crosscheck_NueSurvivalProbabilityKhan(
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph_Khan:
         surprobExpansion = NueSurvivalProbabilityKhan(
-            "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name, mode="expansion",
+            "P(ee)",
+            leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
+            mode="expansion",
         )
         Array("E", E, mode="fill") >> surprobExpansion("E")
         Array("L", [L], mode="fill") >> surprobExpansion("L")
@@ -439,9 +446,9 @@ def test_crosscheck_NueSurvivalProbabilityKhan(
         )
         Array("SinSq2Theta12", [SinSq2Theta12], mode="fill") >> surprobExpansion("SinSq2Theta12")
         Array("SinSq2Theta13", [SinSq2Theta13], mode="fill") >> surprobExpansion("SinSq2Theta13")
-        Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill") >> surprobExpansion(
-            "ElectronToNucleonFraction"
-        )
+        Array(
+            "ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill"
+        ) >> surprobExpansion("ElectronToNucleonFraction")
         Array("density", [density], mode="fill") >> surprobExpansion("density")
         if conversionFactor is not None:
             (Array("surprobArgConversion", [conversionFactor], mode="fill")) >> surprobExpansion(
@@ -450,7 +457,9 @@ def test_crosscheck_NueSurvivalProbabilityKhan(
 
     atol = finfo("d").resolution
     rtol = 1e-4
-    assert allclose(surprobExpansion.outputs[0].data, surprobMain.outputs[0].data, rtol=rtol, atol=atol)
+    assert allclose(
+        surprobExpansion.outputs[0].data, surprobMain.outputs[0].data, rtol=rtol, atol=atol
+    )
 
     import matplotlib.pyplot as plt
 
