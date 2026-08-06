@@ -56,26 +56,22 @@ def _sur_prob_expansion(
     _SinSq2Theta13 = SinSq2Theta13[0]
     _SinSq2Theta12 = SinSq2Theta12[0]
 
-    _Cos2Theta12 = sqrt(1.0 - _SinSq2Theta12)  # cos(2θ₁₂) = √(1 - sin²(2θ₁₂))
-    _SinSqTheta12 = 0.5 * (1.0 - _Cos2Theta12)  # sin²(θ₁₂) = (1 - cos(2θ₁₂)) / 2
-    _CosSqTheta12 = 1.0 - _SinSqTheta12  # cos²(θ₁₂) = 1 - sin²(θ₁₂)
+    Cos2Theta12 = sqrt(1.0 - _SinSq2Theta12)  # cos(2θ₁₂) = √(1 - sin²(2θ₁₂))
+    SinSqTheta12 = 0.5 * (1.0 - Cos2Theta12)  # sin²(θ₁₂) = (1 - cos(2θ₁₂)) / 2
+    CosSqTheta12 = 1.0 - SinSqTheta12  # cos²(θ₁₂) = 1 - sin²(θ₁₂)
 
-    _Cos2Theta13 = sqrt(1.0 - _SinSq2Theta13)  # cos(2θ₁₃) = √(1 - sin²(2θ₁₃))
-    _SinSqTheta13 = 0.5 * (1.0 - _Cos2Theta13)  # sin²(θ₁₃) = (1 - cos(2θ₁₃)) / 2
-    _CosSqTheta13 = 1.0 - _SinSqTheta13  # cos²(θ₁₃) = 1 - sin²(θ₁₃)
+    Cos2Theta13 = sqrt(1.0 - _SinSq2Theta13)  # cos(2θ₁₃) = √(1 - sin²(2θ₁₃))
+    SinSqTheta13 = 0.5 * (1.0 - Cos2Theta13)  # sin²(θ₁₃) = (1 - cos(2θ₁₃)) / 2
+    CosSqTheta13 = 1.0 - SinSqTheta13  # cos²(θ₁₃) = 1 - sin²(θ₁₃)
 
     if is_dm32_leading:
-        _DeltaMSq32 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₂ = α*|Δm²₃ₗ|
-        _DeltaMSq31 = _DeltaMSq32 + _DeltaMSq21  # Δm²₃₁ = Δm²₃₂ + Δm²₂₁
-        _DeltaMSqee = (
-            _DeltaMSq32 + _CosSqTheta12 * _DeltaMSq21
-        )  # Δm²(ee)= Δm²₃₂ + cos²(θ₁₂) * Δm²₂₁
+        DeltaMSq32 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₂ = α·|Δm²₃ₗ|
+        DeltaMSq31 = DeltaMSq32 + _DeltaMSq21  # Δm²₃₁ = Δm²₃₂ + Δm²₂₁
+        DeltaMSqee = DeltaMSq32 + CosSqTheta12 * _DeltaMSq21  # Δm²(ee)= Δm²₃₂ + cos²(θ₁₂) · Δm²₂₁
     else:
-        _DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₁ = α*|Δm²₃ₗ|
-        _DeltaMSq32 = _DeltaMSq31 - _DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
-        _DeltaMSqee = (
-            _DeltaMSq31 - _SinSqTheta12 * _DeltaMSq21
-        )  # Δm²(ee)= Δm²₃₁ - sin²(θ₁₂) * Δm²₂₁
+        DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₁ = α·|Δm²₃ₗ|
+        DeltaMSq32 = DeltaMSq31 - _DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
+        DeltaMSqee = DeltaMSq31 - SinSqTheta12 * _DeltaMSq21  # Δm²(ee)= Δm²₃₁ - sin²(θ₁₂) · Δm²₂₁
 
     _density_const = (
         ElectronToNucleonFraction[0]
@@ -92,63 +88,71 @@ def _sur_prob_expansion(
 
     for i in range(len(out)):
         enu = E[i]
-        variable_a = msw_factor * enu
+        variable_a = msw_factor * enu  # eq. (5)
 
-        a_dm21 = variable_a / _DeltaMSq21
-        a_over_dmee = variable_a / _DeltaMSqee
+        variable_a_over_dm21 = variable_a / _DeltaMSq21
+        variable_a_over_dmee = variable_a / DeltaMSqee
 
-        common_21 = _CosSqTheta13 * a_dm21
-        common_21_squared = common_21 * common_21
+        common_ratio = CosSqTheta13 * variable_a_over_dm21
+        common_ratio_squared = common_ratio * common_ratio
 
-        SinSq13_mod = _SinSqTheta13 + (2.0 * _SinSqTheta13 * _CosSqTheta13) * a_over_dmee
-        CosSq13_mod = 1.0 - SinSq13_mod  # cos²(θ₁₃~) = 1 - sin²(θ₁₃~)
-        CosQu13_mod = CosSq13_mod * CosSq13_mod  # cos⁴(θ₁₃~) = (cos²(θ₁₃~))²
+        SinSqTheta13_tilde = SinSqTheta13 * (
+            1 + 2.0 * CosSqTheta13 * variable_a_over_dmee
+        )  # eq. (17)
+        CosSqTheta13_tilde = 1.0 - SinSqTheta13_tilde  # cos²(θ₁₃~) = 1 - sin²(θ₁₃~)
+        SinSq2Theta13_tilde = (
+            4.0 * SinSqTheta13_tilde * CosSqTheta13_tilde
+        )  # sin²2(θ₁₃~) = 4sin²(θ₁₃~)cos²(θ₁₃~)
+        CosQu13_tilde = CosSqTheta13_tilde * CosSqTheta13_tilde  # cos⁴(θ₁₃~) = (cos²(θ₁₃~))²
 
-        SinSq12_mod = (
-            _SinSqTheta12
-            + 0.5 * _SinSq2Theta12 * common_21
-            + 0.75 * _SinSq2Theta12 * _Cos2Theta12 * common_21_squared
-        )
+        SinSqTheta12_tilde = (
+            SinSqTheta12
+            + 0.5 * _SinSq2Theta12 * common_ratio
+            + 0.75 * _SinSq2Theta12 * Cos2Theta12 * common_ratio_squared
+        )  # eq. (15)
+        # Imply sin²θ₁₂·cos²θ₁₂ = sin²2θ₁₂/4
 
-        CosSq12_mod = 1.0 - SinSq12_mod  # cos²(θ₁₂~) = 1 - sin²(θ₁₂~)
+        CosSqTheta12_tilde = 1.0 - SinSqTheta12_tilde  # cos²(θ₁₂~) = 1 - sin²(θ₁₂~)
+        SinSq2Theta12_tilde = (
+            4.0 * SinSqTheta12_tilde * CosSqTheta12_tilde
+        )  # sin²2(θ₁₂~) = 4sin²(θ₁₂~)cos²(θ₁₂~)
 
-        DeltaMSq21_mod = _DeltaMSq21 * (
-            1.0 - _Cos2Theta12 * common_21 + 0.5 * _SinSq2Theta12 * common_21_squared
-        )
+        DeltaMSq21_tilde = _DeltaMSq21 * (
+            1.0 - Cos2Theta12 * common_ratio + 0.5 * _SinSq2Theta12 * common_ratio_squared
+        )  # eq. (16)
+        # Imply 2·sin²θ₁₂·cos²θ₁₂ = sin²2θ₁₂/2
 
-        common_3 = 0.25 * _SinSq2Theta12 * _CosSqTheta13 * common_21
+        common_3l = 0.25 * _SinSq2Theta12 * CosSqTheta13 * common_ratio  # in eq. (19−20)
+        # Imply sin²θ₁₂·cos²θ₁₂ = sin²2θ₁₂/4
 
-        DeltaMSq31_mod = _DeltaMSq31 - variable_a * (
-            (_CosSqTheta12 * _CosSqTheta13 - _SinSqTheta13) - common_3
-        )
+        DeltaMSq31_tilde = DeltaMSq31 - variable_a * (
+            (CosSqTheta12 * CosSqTheta13 - SinSqTheta13) - common_3l
+        )  # eq. (19)
 
-        DeltaMSq32_mod = _DeltaMSq32 - variable_a * (
-            (_SinSqTheta12 * _CosSqTheta13 - _SinSqTheta13) + common_3
-        )
+        DeltaMSq32_tilde = DeltaMSq32 - variable_a * (
+            (SinSqTheta12 * CosSqTheta13 - SinSqTheta13) + common_3l
+        )  # eq. (20)
 
-        SinArg21 = Lcq * (DeltaMSq21_mod / enu)
-        SinArg31 = Lcq * (DeltaMSq31_mod / enu)
-        SinArg32 = Lcq * (DeltaMSq32_mod / enu)
+        Lcq_over_enu = Lcq / enu
+        SinArg21 = Lcq_over_enu * DeltaMSq21_tilde
+        SinArg31 = Lcq_over_enu * DeltaMSq31_tilde
+        SinArg32 = Lcq_over_enu * DeltaMSq32_tilde
 
-        SinDelta31_mod = sin(SinArg31)  # sin(Δ₃₁)
-        SinSqDelta31_mod = SinDelta31_mod * SinDelta31_mod
+        SinDelta31_tilde = sin(SinArg31)  # sin(Δ₃₁)
+        SinSqDelta31_tilde = SinDelta31_tilde * SinDelta31_tilde
 
-        SinDelta21_mod = sin(SinArg21)  # sin(Δ₂₁)
-        SinSqDelta21_mod = SinDelta21_mod * SinDelta21_mod
+        SinDelta21_tilde = sin(SinArg21)  # sin(Δ₂₁)
+        SinSqDelta21_tilde = SinDelta21_tilde * SinDelta21_tilde
 
-        SinDelta32_mod = sin(SinArg32)  # sin(Δ₃₂)
-        SinSqDelta32_mod = SinDelta32_mod * SinDelta32_mod
+        SinDelta32_tilde = sin(SinArg32)  # sin(Δ₃₂)
+        SinSqDelta32_tilde = SinDelta32_tilde * SinDelta32_tilde
 
         out[i] = (
             1.0
-            - 4.0 * (CosQu13_mod * SinSq12_mod * CosSq12_mod * SinSqDelta21_mod)
-            - 4.0
-            * (
-                SinSq13_mod
-                * CosSq13_mod
-                * (CosSq12_mod * SinSqDelta31_mod + SinSq12_mod * SinSqDelta32_mod)
-            )
-        )
+            - CosQu13_tilde * SinSq2Theta12_tilde * SinSqDelta21_tilde
+            - SinSq2Theta13_tilde
+            * (CosSqTheta12_tilde * SinSqDelta31_tilde + SinSqTheta12_tilde * SinSqDelta32_tilde)
+        )  # eq. (4)
 
 
 @njit(cache=True)
@@ -179,13 +183,13 @@ def _sur_prob_main(
     SinSqTheta13 = 0.5 * (1.0 - Cos2Theta13)  # sin²(θ₁₃) = (1 - cos(2θ₁₃)) / 2
     CosSqTheta13 = 1.0 - SinSqTheta13  # cos²(θ₁₃) = 1 - sin²(θ₁₃)
     if is_dm32_leading:
-        DeltaMSq32 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₂ = α*|Δm²₃ₗ|
+        DeltaMSq32 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₂ = α·|Δm²₃ₗ|
         DeltaMSq31 = DeltaMSq32 + _DeltaMSq21  # Δm²₃₁ = Δm²₃₂ + Δm²₂₁
-        DeltaMSqee = DeltaMSq32 + CosSqTheta12 * _DeltaMSq21  # Δm²(ee)= Δm²₃₂ + cos²(θ₁₂) * Δm²₂₁
+        DeltaMSqee = DeltaMSq32 + CosSqTheta12 * _DeltaMSq21  # Δm²(ee)= Δm²₃₂ + cos²(θ₁₂) · Δm²₂₁
     else:
-        DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₁ = α*|Δm²₃ₗ|
+        DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₁ = α·|Δm²₃ₗ|
         DeltaMSq32 = DeltaMSq31 - _DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
-        DeltaMSqee = DeltaMSq31 - SinSqTheta12 * _DeltaMSq21  # Δm²(ee)= Δm²₃₁ - sin²(θ₁₂) * Δm²₂₁
+        DeltaMSqee = DeltaMSq31 - SinSqTheta12 * _DeltaMSq21  # Δm²(ee)= Δm²₃₁ - sin²(θ₁₂) · Δm²₂₁
 
     _density_const = (
         ElectronToNucleonFraction[0]
@@ -217,7 +221,7 @@ def _sur_prob_main(
         CosSqTheta13_tilde = (1.0 + Cos2Theta13_tilde) * 0.5  # cos²(θ₁₃~) = (1 + cos(2θ₁₃~)) / 2
         CosQuTheta13_tilde = CosSqTheta13_tilde * CosSqTheta13_tilde
 
-        variable_a_prime = (variable_a + DeltaMSqee - DeltaMSqee_tilde) * 0.5 # eq. (11)
+        variable_a_prime = (variable_a + DeltaMSqee - DeltaMSqee_tilde) * 0.5  # eq. (11)
         a_prime_over_dm21 = variable_a_prime / _DeltaMSq21
         Cos2Theta12_shifted = Cos2Theta12 - a_prime_over_dm21
         CosSqDiff_Theta13tilde_Theta13 = (
@@ -228,7 +232,9 @@ def _sur_prob_main(
             + CosSqDiff_Theta13tilde_Theta13 * _SinSq2Theta12
         )  # eq. (10)
 
-        Cos2Theta12_tilde = (_DeltaMSq21 * Cos2Theta12 - variable_a_prime) / DeltaMSq21_tilde  # eq. (9)
+        Cos2Theta12_tilde = (
+            _DeltaMSq21 * Cos2Theta12 - variable_a_prime
+        ) / DeltaMSq21_tilde  # eq. (9)
         SinSq2Theta12_tilde = (
             1.0 - Cos2Theta12_tilde * Cos2Theta12_tilde
         )  # sin²(2θ₁₂~) = 1 - cos²(2θ₁₂~)
@@ -238,9 +244,10 @@ def _sur_prob_main(
         DeltaMSq31_tilde = DeltaMSqee_tilde + SinSqTheta12_tilde * DeltaMSq21_tilde  # eq. (13)
         DeltaMSq32_tilde = DeltaMSq31_tilde - DeltaMSq21_tilde  # eq. (14)
 
-        SinArg21 = Lcq * (DeltaMSq21_tilde / enu)
-        SinArg31 = Lcq * (DeltaMSq31_tilde / enu)
-        SinArg32 = Lcq * (DeltaMSq32_tilde / enu)
+        Lcq_over_enu = Lcq / enu
+        SinArg21 = Lcq_over_enu * DeltaMSq21_tilde
+        SinArg31 = Lcq_over_enu * DeltaMSq31_tilde
+        SinArg32 = Lcq_over_enu * DeltaMSq32_tilde
 
         SinDelta31_tilde = sin(SinArg31)  # sin(Δ₃₁)
         SinSqDelta31_tilde = SinDelta31_tilde * SinDelta31_tilde
