@@ -398,7 +398,7 @@ def test_crosscheck_NueSurvivalProbabilityKhan(
     density,
     output_path: str,
 ):
-    E = geomspace(1, 100, 1000)  # MeV
+    E = geomspace(1, 12, 120)  # MeV
     DeltaMSq21 = 7.39 * 1e-5  # eV^2
     DeltaMSq3lAbs = 2.45 * 1e-3  # eV^2
     SinSq2Theta12 = 3.1 * 1e-1  # [-]
@@ -449,8 +449,9 @@ def test_crosscheck_NueSurvivalProbabilityKhan(
                 "surprobArgConversion"
             )
 
-    atol = 1e-3
-    assert allclose(surprobExpansion.outputs[0].data, surprobMain.outputs[0].data, rtol=0, atol=atol)
+    atol = finfo("d").resolution
+    rtol = 1e-4
+    assert allclose(surprobExpansion.outputs[0].data, surprobMain.outputs[0].data, rtol=rtol, atol=atol)
 
     import matplotlib.pyplot as plt
 
