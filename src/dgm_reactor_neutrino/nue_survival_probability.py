@@ -139,7 +139,7 @@ class NueSurvivalProbability(Node):
                 "surprobArgConversion",
             ),
         )
-        self._fd.needs_post_allocate = True
+        self.fd.needs_post_allocate = True
         self._is_dm32_leading = leading_mass_splitting_3l_name == "DeltaMSq32"
         self._labels.setdefault("mark", "P(ee)")
         self._add_pair("E", "result")
