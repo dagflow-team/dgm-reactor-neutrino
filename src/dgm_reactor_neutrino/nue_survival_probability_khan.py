@@ -15,8 +15,6 @@ from scipy.constants import value
 
 if TYPE_CHECKING:
     from typing import Literal
-
-    from dag_modelling.core.node import Node
     from dag_modelling.core.output import Output
     from nested_mapping.typing import KeyLike
     from numpy import double
@@ -73,14 +71,15 @@ def _sur_prob_expansion(
         DeltaMSq32 = DeltaMSq31 - _DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
         DeltaMSqee = DeltaMSq31 - SinSqTheta12 * _DeltaMSq21  # Δm²(ee)= Δm²₃₁ - sin²(θ₁₂) · Δm²₂₁
 
-    _density_const = (
-        ElectronToNucleonFraction[0]
-        / _aem_g
-        * (-2.0)
+    _density_conversion = ((-2.0) / _aem_g
         * sqrt(2.0)
         * _Gf
         * _GF_CONVERSION
         / _MeV_to_eV
+    )
+    _density_const = (
+        ElectronToNucleonFraction[0]
+        * _density_conversion
     )
     msw_factor = _density_const * density[0]
 
@@ -180,25 +179,22 @@ def _sur_prob_main(
     CosSqTheta12 = 1.0 - SinSqTheta12  # cos²(θ₁₂) = 1 - sin²(θ₁₂)
 
     Cos2Theta13 = sqrt(1.0 - _SinSq2Theta13)  # cos(2θ₁₃) = √(1 - sin²(2θ₁₃))
-    SinSqTheta13 = 0.5 * (1.0 - Cos2Theta13)  # sin²(θ₁₃) = (1 - cos(2θ₁₃)) / 2
-    CosSqTheta13 = 1.0 - SinSqTheta13  # cos²(θ₁₃) = 1 - sin²(θ₁₃)
     if is_dm32_leading:
         DeltaMSq32 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₂ = α·|Δm²₃ₗ|
-        DeltaMSq31 = DeltaMSq32 + _DeltaMSq21  # Δm²₃₁ = Δm²₃₂ + Δm²₂₁
         DeltaMSqee = DeltaMSq32 + CosSqTheta12 * _DeltaMSq21  # Δm²(ee)= Δm²₃₂ + cos²(θ₁₂) · Δm²₂₁
     else:
         DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₁ = α·|Δm²₃ₗ|
-        DeltaMSq32 = DeltaMSq31 - _DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
         DeltaMSqee = DeltaMSq31 - SinSqTheta12 * _DeltaMSq21  # Δm²(ee)= Δm²₃₁ - sin²(θ₁₂) · Δm²₂₁
 
+    _density_conversion = ((-2.0) / _aem_g
+                           * sqrt(2.0)
+                           * _Gf
+                           * _GF_CONVERSION
+                           / _MeV_to_eV
+                           )
     _density_const = (
-        ElectronToNucleonFraction[0]
-        / _aem_g
-        * (-2.0)
-        * sqrt(2.0)
-        * _Gf
-        * _GF_CONVERSION
-        / _MeV_to_eV
+            ElectronToNucleonFraction[0]
+            * _density_conversion
     )
     msw_factor = _density_const * density[0]
 
@@ -268,6 +264,19 @@ def _sur_prob_main(
 
 class NueSurvivalProbabilityKhan(Node):
     """
+    Calculates the electron neutrino survival probability P(ee) using the
+    analytical approximation by Khan.
+
+    Two computation modes are available:
+    - 'main' (default): uses the exact matter‑modified effective mixing
+      parameters (sines, mass‑squared differences) by solving the evolution
+      equations in matter. This mode is accurate for all densities and should be
+      used for general cases.
+    - 'expansion': uses a perturbative expansion of the oscillation parameters
+      (sin²2θ, Δm²) around zero matter potential (a = 0). This approximation is
+      valid for small matter potentials and is computationally faster, but may
+      become inaccurate at high densities or for large matter effects.
+
     inputs:
         `E`: array of the energies
         `L`: the distance
@@ -285,7 +294,7 @@ class NueSurvivalProbabilityKhan(Node):
     outputs:
         `0` or `result`: array of probabilities
 
-    Calcultes a survival probability for the neutrino
+    Calcultes a survival probability for the neutrino in matter
     """
 
     __slots__ = (
@@ -389,7 +398,6 @@ class NueSurvivalProbabilityKhan(Node):
             ),
             (1,),
         )
-        # check_input_subtype(self, "nmo", integer)
         copy_from_inputs_to_outputs(self, "E", "result")
         assign_axes_from_inputs_to_outputs(
             self, "E", "result", assign_meshes=True, overwrite_assigned=True
@@ -483,12 +491,11 @@ class NueSurvivalProbabilityKhan(Node):
             outputs[ckey] = surprob.outputs[0]
 
             if surprobArgConversion:
-                if surprobArgConversion == True:
-                    inputs[nametuple + ("surprobArgConversion",) + key] = surprob(
-                        "surprobArgConversion"
-                    )
-                else:
-                    surprobArgConversion >> surprob("surprobArgConversion")
+                inputs[nametuple + ("surprobArgConversion",) + key] = surprob(
+                    "surprobArgConversion"
+                )
+            else:
+                surprobArgConversion >> surprob("surprobArgConversion")
 
         NodeStorage.update_current(storage, strict=True, verbose=verbose)
 

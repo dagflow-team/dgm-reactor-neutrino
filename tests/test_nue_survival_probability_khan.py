@@ -58,10 +58,8 @@ def test_NueSurvivalProbabilityKhan(
         )
         (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12], mode="fill")) >> surprob("SinSq2Theta12")
         (in_t13 := Array("SinSq2Theta13", [SinSq2Theta13], mode="fill")) >> surprob("SinSq2Theta13")
-        (
-            in_ef := Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill")
-        ) >> surprob("ElectronToNucleonFraction")
-        (in_dens := Array("density", [density], mode="fill")) >> surprob("density")
+        Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill") >> surprob("ElectronToNucleonFraction")
+        Array("density", [density], mode="fill") >> surprob("density")
         if conversionFactor is not None:
             (
                 in_conversion := Array("surprobArgConversion", [conversionFactor], mode="fill")
@@ -99,7 +97,6 @@ def test_NueSurvivalProbabilityKhan(
         _CosSqTheta13 = 1.0 - _SinSqTheta13
         _CosQuTheta13 = _CosSqTheta13**2  # cos^4 θ₁₃
         _scSq12 = _SinSqTheta12 * _CosSqTheta12
-        _cosDouble12 = _CosSqTheta12 - _SinSqTheta12
 
         _DeltaMSqee = _CosSqTheta12 * _DeltaMSq31 + _SinSqTheta12 * _DeltaMSq32
 
@@ -316,7 +313,7 @@ def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
     ElectronToNucleonFraction = 0.5
     density = 0.0
 
-    with Graph(close_on_exit=True, debug=debug_graph) as graph_Khan:
+    with Graph(close_on_exit=True, debug=debug_graph):
         surprobKhan = NueSurvivalProbabilityKhan(
             "P(ee)", leading_mass_splitting_3l_name=leading_mass_splitting_3l_name, mode=mode
         )
@@ -340,7 +337,7 @@ def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
 
     from dgm_reactor_neutrino.nue_survival_probability import NueSurvivalProbability
 
-    with Graph(close_on_exit=True, debug=debug_graph) as graph:
+    with Graph(close_on_exit=True, debug=debug_graph):
         surprob = NueSurvivalProbability(
             "P(ee)",
             leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
@@ -407,7 +404,7 @@ def test_crosscheck_NueSurvivalProbabilityKhan(
     SinSq2Theta13 = 2.241 * 1e-2  # [-]
     ElectronToNucleonFraction = 0.5
 
-    with Graph(close_on_exit=True, debug=debug_graph) as graph_Khan:
+    with Graph(close_on_exit=True, debug=debug_graph):
         surprobMain = NueSurvivalProbabilityKhan(
             "P(ee)",
             leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
@@ -431,7 +428,7 @@ def test_crosscheck_NueSurvivalProbabilityKhan(
                 "surprobArgConversion"
             )
 
-    with Graph(close_on_exit=True, debug=debug_graph) as graph_Khan:
+    with Graph(close_on_exit=True, debug=debug_graph):
         surprobExpansion = NueSurvivalProbabilityKhan(
             "P(ee)",
             leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
