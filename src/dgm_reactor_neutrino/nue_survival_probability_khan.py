@@ -11,26 +11,45 @@ from dag_modelling.core.type_functions import (
 )
 from numba import njit
 from numpy import array, pi, sin, sqrt
-from scipy.constants import value
+from scipy.constants import value as constant
 
 if TYPE_CHECKING:
     from typing import Literal
+
     from dag_modelling.core.output import Output
     from nested_mapping.typing import KeyLike
     from numpy import double
     from numpy.typing import NDArray
 
-_surprobArgConversion = pi * 2e-3 * value("electron volt-inverse meter relationship")
-_aem_g = value("atomic mass constant") * 1000
-_Gf = value("Fermi coupling constant")
-_hbar = value("reduced Planck constant")
-_c = value("speed of light in vacuum")
-_e = value("elementary charge")
-_hbar_c_eV_cm = (_hbar * _c / _e) * 100
-_SqGeV_to_SqMeV = 1e-18
-_GF_CONVERSION = _SqGeV_to_SqMeV * (_hbar_c_eV_cm**3)
-_MeV_to_eV = 1e-6
-del _hbar, _c, _e, _hbar_c_eV_cm, _SqGeV_to_SqMeV
+_surprobArgConversion = pi * 2e-3 * constant("electron volt-inverse meter relationship")
+_constant_aem_g = constant("atomic mass constant") * 1000
+_constant_Gf = constant("Fermi coupling constant")
+_constant_hbar = constant("reduced Planck constant")
+_constant_c = constant("speed of light in vacuum")
+_constant_e = constant("elementary charge")
+_constant_hbar_c_eV_cm = (_constant_hbar * _constant_c / _constant_e) * 100
+_constant_SqGeV_to_SqMeV = 1e-18
+_constant_GF_CONVERSION = _constant_SqGeV_to_SqMeV * (_constant_hbar_c_eV_cm**3)
+_constant_MeV_to_eV = 1e-6
+_density_conversion = (
+    (-2.0)
+    / _constant_aem_g
+    * sqrt(2.0)
+    * _constant_Gf
+    * _constant_GF_CONVERSION
+    / _constant_MeV_to_eV
+)
+del (
+    _constant_hbar,
+    _constant_c,
+    _constant_e,
+    _constant_hbar_c_eV_cm,
+    _constant_SqGeV_to_SqMeV,
+    _constant_aem_g,
+    _constant_Gf,
+    _constant_GF_CONVERSION,
+    _constant_MeV_to_eV,
+)
 
 
 @njit(cache=True)
@@ -71,16 +90,7 @@ def _sur_prob_expansion(
         DeltaMSq32 = DeltaMSq31 - _DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
         DeltaMSqee = DeltaMSq31 - SinSqTheta12 * _DeltaMSq21  # Δm²(ee)= Δm²₃₁ - sin²(θ₁₂) · Δm²₂₁
 
-    _density_conversion = ((-2.0) / _aem_g
-        * sqrt(2.0)
-        * _Gf
-        * _GF_CONVERSION
-        / _MeV_to_eV
-    )
-    _density_const = (
-        ElectronToNucleonFraction[0]
-        * _density_conversion
-    )
+    _density_const = ElectronToNucleonFraction[0] * _density_conversion
     msw_factor = _density_const * density[0]
 
     Lcq = surprobArgConversion[0] * 0.25 * L[0] * L_scale
@@ -186,16 +196,7 @@ def _sur_prob_main(
         DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₁ = α·|Δm²₃ₗ|
         DeltaMSqee = DeltaMSq31 - SinSqTheta12 * _DeltaMSq21  # Δm²(ee)= Δm²₃₁ - sin²(θ₁₂) · Δm²₂₁
 
-    _density_conversion = ((-2.0) / _aem_g
-                           * sqrt(2.0)
-                           * _Gf
-                           * _GF_CONVERSION
-                           / _MeV_to_eV
-                           )
-    _density_const = (
-            ElectronToNucleonFraction[0]
-            * _density_conversion
-    )
+    _density_const = ElectronToNucleonFraction[0] * _density_conversion
     msw_factor = _density_const * density[0]
 
     Lcq = surprobArgConversion[0] * 0.25 * L[0] * L_scale

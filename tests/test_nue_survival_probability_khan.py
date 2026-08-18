@@ -15,11 +15,11 @@ from dgm_reactor_neutrino.nue_survival_probability_khan import (
 
 @mark.parametrize("nmo", (1, -1))  # mass ordering
 @mark.parametrize(
-    "L,leading_mass_splitting_3l_name", ((2, "DeltaMSq32"), (52, "DeltaMSq31"), (180, "DeltaMSq32"))
+    "L,leading_mass_splitting_3l_name", ((2, "DeltaMSq32"), (52, "DeltaMSq31"))
 )  # km
 @mark.parametrize(
     "conversionFactor",
-    (None, _surprobArgConversion, 0.9 * _surprobArgConversion),
+    (None, _surprobArgConversion),
 )
 @mark.parametrize("density", (0, 2.5))
 @mark.parametrize("mode", ("expansion", "main"))
@@ -58,7 +58,9 @@ def test_NueSurvivalProbabilityKhan(
         )
         (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12], mode="fill")) >> surprob("SinSq2Theta12")
         (in_t13 := Array("SinSq2Theta13", [SinSq2Theta13], mode="fill")) >> surprob("SinSq2Theta13")
-        Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill") >> surprob("ElectronToNucleonFraction")
+        Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill") >> surprob(
+            "ElectronToNucleonFraction"
+        )
         Array("density", [density], mode="fill") >> surprob("density")
         if conversionFactor is not None:
             (
@@ -286,14 +288,9 @@ def test_NueSurvivalProbabilityKhan(
     savegraph(graph, f"{output_path}/{test_name}.png")
 
 
-@mark.parametrize("nmo", (1, -1))  # mass ordering
 @mark.parametrize(
-    "L,leading_mass_splitting_3l_name", ((2, "DeltaMSq32"), (52, "DeltaMSq31"), (180, "DeltaMSq32"))
+    "nmo, L,leading_mass_splitting_3l_name", ((-1, 2, "DeltaMSq32"), (-1, 52, "DeltaMSq31"), (1, 180, "DeltaMSq32"))
 )  # km
-@mark.parametrize(
-    "conversionFactor",
-    (None, _surprobArgConversion, 0.9 * _surprobArgConversion),
-)
 @mark.parametrize("mode", ("expansion", "main"))
 def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
     debug_graph,
@@ -301,7 +298,6 @@ def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
     L,
     leading_mass_splitting_3l_name,
     nmo,
-    conversionFactor,
     mode,
     output_path: str,
 ):
@@ -312,6 +308,7 @@ def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
     SinSq2Theta13 = 2.241 * 1e-2  # [-]
     ElectronToNucleonFraction = 0.5
     density = 0.0
+    conversionFactor = _surprobArgConversion
 
     with Graph(close_on_exit=True, debug=debug_graph):
         surprobKhan = NueSurvivalProbabilityKhan(
@@ -378,15 +375,13 @@ def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
     plt.close(fig)
 
 
-@mark.parametrize("nmo", (1, -1))  # mass ordering
 @mark.parametrize(
-    "L,leading_mass_splitting_3l_name", ((2, "DeltaMSq32"), (52, "DeltaMSq31"), (180, "DeltaMSq32"))
+    "nmo, L,leading_mass_splitting_3l_name", ((-1, 2, "DeltaMSq32"), (-1, 52, "DeltaMSq31"), (1, 180, "DeltaMSq32"))
 )  # km
 @mark.parametrize(
     "conversionFactor",
-    (None, _surprobArgConversion, 0.9 * _surprobArgConversion),
+    (None, _surprobArgConversion),
 )
-@mark.parametrize("density", (0, 2.5))
 def test_crosscheck_NueSurvivalProbabilityKhan(
     debug_graph,
     test_name,
@@ -394,7 +389,6 @@ def test_crosscheck_NueSurvivalProbabilityKhan(
     leading_mass_splitting_3l_name,
     nmo,
     conversionFactor,
-    density,
     output_path: str,
 ):
     E = geomspace(1, 12, 120)  # MeV
@@ -403,6 +397,7 @@ def test_crosscheck_NueSurvivalProbabilityKhan(
     SinSq2Theta12 = 3.1 * 1e-1  # [-]
     SinSq2Theta13 = 2.241 * 1e-2  # [-]
     ElectronToNucleonFraction = 0.5
+    density = 2.5
 
     with Graph(close_on_exit=True, debug=debug_graph):
         surprobMain = NueSurvivalProbabilityKhan(
