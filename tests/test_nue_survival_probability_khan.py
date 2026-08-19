@@ -97,8 +97,6 @@ def test_NueSurvivalProbabilityKhan(
         _CosSqTheta12 = 1.0 - _SinSqTheta12
         _SinSqTheta13 = 0.5 * (1.0 - sqrt(1.0 - SinSq2Theta13))
         _CosSqTheta13 = 1.0 - _SinSqTheta13
-        _CosQuTheta13 = _CosSqTheta13**2  # cos^4 θ₁₃
-        _scSq12 = _SinSqTheta12 * _CosSqTheta12
 
         _DeltaMSqee = _CosSqTheta12 * _DeltaMSq31 + _SinSqTheta12 * _DeltaMSq32
 
