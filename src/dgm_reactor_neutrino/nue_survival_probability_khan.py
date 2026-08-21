@@ -265,18 +265,17 @@ def _sur_prob_main(
 
 class NueSurvivalProbabilityKhan(Node):
     """
-    Calculates the electron neutrino survival probability P(ee) using the
-    analytical approximation by Khan.
+    Calculates the electron neutrino survival probability P(ee) using the analytical approximation
+    by Khan et al.
 
     Two computation modes are available:
-    - 'main' (default): uses the exact matter‑modified effective mixing
-      parameters (sines, mass‑squared differences) by solving the evolution
-      equations in matter. This mode is accurate for all densities and should be
-      used for general cases.
-    - 'expansion': uses a perturbative expansion of the oscillation parameters
-      (sin²2θ, Δm²) around zero matter potential (a = 0). This approximation is
-      valid for small matter potentials and is computationally faster, but may
-      become inaccurate at high densities or for large matter effects.
+    - "main" (default): uses the exact matter‑modified effective mixing parameters (sines,
+      mass‑squared differences) by solving the evolution equations in matter. This mode is accurate
+      for all densities and should be used for general cases.
+    - "expansion": uses a perturbative expansion of the oscillation parameters (sin²2θ, Δm²) around
+      zero matter potential (a = 0). This approximation is valid for small matter potentials and is
+      computationally faster, but may become inaccurate at high densities or for large matter
+      effects.
 
     inputs:
         `E`: array of the energies
@@ -288,14 +287,23 @@ class NueSurvivalProbabilityKhan(Node):
         `nmo`: α - the mass ordering constant
 
     optional inputs:
-        `surprobArgConversion`: Convert Δm²[eV²]L[km]/E[MeV] to natural units.
-        If the input is not given a default value will be used:
-        `2*pi*1e-3*scipy.value('electron volt-inverse meter relationship')`
+        - `surprobArgConversion`: Convert Δm²[eV²]L[km]/E[MeV] to natural units. If the input is not
+           given a default value will be used:
+               `2*pi*1e-3*scipy.value('electron volt-inverse meter relationship')`
 
     outputs:
         `0` or `result`: array of probabilities
 
-    Calcultes a survival probability for the neutrino in matter
+    Parameters
+    ----------
+        leading_mass_splitting_3l_name : Literal["DeltaMSq31", "DeltaMSq32"]
+            Selects which mass-squared difference will be provided as input and which one will be
+            calculated.
+        mode: Literal["main", "expansion"], default="main"
+            Selects, which sets of formulas from the paper will be used. See beginning of the
+            documentation.
+        distance_unit: Literal["km", "m"], default="km"
+            Distance units for L.
     """
 
     __slots__ = (
@@ -492,11 +500,12 @@ class NueSurvivalProbabilityKhan(Node):
             outputs[ckey] = surprob.outputs[0]
 
             if surprobArgConversion:
-                inputs[nametuple + ("surprobArgConversion",) + key] = surprob(
-                    "surprobArgConversion"
-                )
-            else:
-                surprobArgConversion >> surprob("surprobArgConversion")
+                if surprobArgConversion is True:
+                    inputs[nametuple + ("surprobArgConversion",) + key] = surprob(
+                        "surprobArgConversion"
+                    )
+                else:
+                    surprobArgConversion >> surprob("surprobArgConversion")
 
         NodeStorage.update_current(storage, strict=True, verbose=verbose)
 
