@@ -69,7 +69,8 @@ def _sur_prob(
 
 
 class NueSurvivalProbability(Node):
-    """
+    """Compute the electron neutrino survival probability in vacuum.
+
     inputs:
         `E`: array of the energies
         `L`: the distance
@@ -87,7 +88,13 @@ class NueSurvivalProbability(Node):
     outputs:
         `0` or `result`: array of probabilities
 
-    Calcultes a survival probability for the neutrino
+    Parameters
+    ----------
+        leading_mass_splitting_3l_name : Literal["DeltaMSq31", "DeltaMSq32"]
+            Selects which mass-squared difference will be provided as input and which one will be
+            calculated.
+        distance_unit: Literal["km", "m"], default="km"
+            Distance units for L.
     """
 
     __slots__ = (
@@ -240,7 +247,7 @@ class NueSurvivalProbability(Node):
             outputs[ckey] = surprob.outputs[0]
 
             if surprobArgConversion:
-                if surprobArgConversion == True:
+                if surprobArgConversion is True:
                     inputs[nametuple + ("surprobArgConversion",) + key] = surprob(
                         "surprobArgConversion"
                     )
