@@ -5,9 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.4.0] - 2026-??-??
+## [0.4.0] - 2026-09-15
 
-- feature: add survival probability of electron antineutrino in matter
+- feature: add survival probability of electron antineutrino in matter.
+- chore: necessary updates for compatibility with cython-ready version of dag-modelling.
 
 ## [0.3.0] - 2026-02-24
 
@@ -29,7 +30,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.1] - 2025-07-24
 
-The prerelease version.
+The pre-release version.
 
 ### Added
 
