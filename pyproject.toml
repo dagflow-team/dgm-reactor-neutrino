@@ -19,8 +19,7 @@ classifiers = [
 ]
 dynamic = [ "version" ]
 dependencies = [
-  # "dag-modelling>=0.16.0",
-  "dag-modelling @ git+https://git.jinr.ru/dagflow-team/dag-modelling.git@release",
+  "dag-modelling>=0.16.0",
   "numba",
   "scipy",
 ]
