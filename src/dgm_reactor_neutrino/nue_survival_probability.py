@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from dag_modelling.core.global_parameters import NUMBA_CACHE_ENABLE
 from dag_modelling.core.node import Node
@@ -69,7 +69,8 @@ def _sur_prob(
 
 
 class NueSurvivalProbability(Node):
-    """
+    """Compute the electron neutrino survival probability in vacuum.
+
     inputs:
         `E`: array of the energies
         `L`: the distance
@@ -87,7 +88,13 @@ class NueSurvivalProbability(Node):
     outputs:
         `0` or `result`: array of probabilities
 
-    Calcultes a survival probability for the neutrino
+    Parameters
+    ----------
+        leading_mass_splitting_3l_name : Literal["DeltaMSq31", "DeltaMSq32"]
+            Selects which mass-squared difference will be provided as input and which one will be
+            calculated.
+        distance_unit: Literal["km", "m"], default="km"
+            Distance units for L.
     """
 
     __slots__ = (
@@ -139,6 +146,7 @@ class NueSurvivalProbability(Node):
                 "surprobArgConversion",
             ),
         )
+        self.needs_post_allocate = True
         self._is_dm32_leading = leading_mass_splitting_3l_name == "DeltaMSq32"
         self._labels.setdefault("mark", "P(ee)")
         self._add_pair("E", "result")
@@ -153,6 +161,7 @@ class NueSurvivalProbability(Node):
         except KeyError as e:
             raise RuntimeError(f"Invalid distance unit {distance_unit}") from e
 
+    @override
     def _type_function(self) -> None:
         """A output takes this function to determine the dtype and shape."""
         check_shape_of_inputs(
@@ -191,6 +200,7 @@ class NueSurvivalProbability(Node):
             self._surprob_arg_conversion_factor,
         )
 
+    @override
     def _post_allocate(self):
         super()._post_allocate()
 
@@ -237,7 +247,7 @@ class NueSurvivalProbability(Node):
             outputs[ckey] = surprob.outputs[0]
 
             if surprobArgConversion:
-                if surprobArgConversion == True:
+                if surprobArgConversion is True:
                     inputs[nametuple + ("surprobArgConversion",) + key] = surprob(
                         "surprobArgConversion"
                     )

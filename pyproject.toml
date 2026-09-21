@@ -19,7 +19,7 @@ classifiers = [
 ]
 dynamic = [ "version" ]
 dependencies = [
-  "dag-modelling>=0.14.4.post0",
+  "dag-modelling>=0.16.0",
   "numba",
   "scipy",
 ]

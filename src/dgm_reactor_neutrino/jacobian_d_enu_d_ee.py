@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, override
 
 from dag_modelling.core.global_parameters import NUMBA_CACHE_ENABLE
 from dag_modelling.core.input_strategy import AddNewInputAddNewOutput
@@ -95,6 +95,7 @@ class Jacobian_dEnu_dEe(Node):
             self._use_edep,
         )
 
+    @override
     def _type_function(self) -> None:
         """A output takes this function to determine the dtype and shape."""
         check_dimension_of_inputs(self, slice(0, 3), 2)
