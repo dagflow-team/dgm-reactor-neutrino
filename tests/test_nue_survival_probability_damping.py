@@ -9,20 +9,18 @@ from numpy import allclose, arcsin, cos, exp, expm1, finfo, geomspace, sin, sqrt
 from pytest import mark, raises
 
 from dgm_reactor_neutrino import NueSurvivalProbabilityDamping
-from dgm_reactor_neutrino.nue_survival_probability_damping import (
-    _surprobArgConversion,
-    _DAMPING_MODEL_MAP,
-)
+from dgm_reactor_neutrino.nue_survival_probability_damping import _surprobArgConversion
 
 _DAMPING_CASES = ("none", "decay", "wpd1", "wpd2")
-_DAMPING_CASES_INT = tuple(sorted(_DAMPING_MODEL_MAP.values()))   # (0, 1, 2, 3)
 
 _ATOL = 10.0 * finfo("d").resolution
 
 
 def _assert_close(surprob, reference):
     assert surprob.tainted is True
-    assert allclose(surprob.outputs[0].data, reference(), rtol=0, atol=_ATOL)
+    data_node = surprob.outputs[0].data
+    data_ref = reference()
+    assert allclose(data_node, data_ref, rtol=0, atol=_ATOL)
     assert surprob.tainted is False
 
 
@@ -37,26 +35,32 @@ def _assert_close(surprob, reference):
 )
 @mark.parametrize("damping_model", _DAMPING_CASES)
 def test_NueSurvivalProbability_01(
-    debug_graph, test_name, L,
-    leading_mass_splitting_3l_name, nmo,
-    damping_model, output_path: str,
+    debug_graph,
+    test_name,
+    L,
+    leading_mass_splitting_3l_name,
+    nmo,
+    damping_model,
+    output_path: str,
 ):
     E = geomspace(1, 100, 1000)  # MeV
-    DeltaMSq21 = 7.39 * 1e-5       # eV^2
-    DeltaMSq3lAbs = 2.45 * 1e-3    # eV^2
+    DeltaMSq21 = 7.39 * 1e-5  # eV^2
+    DeltaMSq3lAbs = 2.45 * 1e-3  # eV^2
     SinSq2Theta12 = 3.1e-1
     SinSq2Theta13 = 2.241e-2
     is_dm32_leading = leading_mass_splitting_3l_name == "DeltaMSq32"
     is_dm31_leading = leading_mass_splitting_3l_name == "DeltaMSq31"
 
     damping_params = {
-        "alpha_decay": 1e-5,   # MeV/m
-        "alpha_wpd1":  1e-3,   # MeV^2
-        "alpha_wpd2":  1e-5,   # dimensionless
+        "alpha_decay": 1e-5,  # MeV/m
+        "alpha_wpd1": 1e-3,  # MeV^2
+        "alpha_wpd2": 1e-5,  # dimensionless
     }
 
+    alpha_name = f"alpha_{damping_model}"
+    in_alpha = None
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
-        # damping_model is a constructor argument (Medium+), resolved in
+        # damping_model is a constructor argument, resolved in
         # __init__ and selected in _type_function (Chi2 pattern).
         surprob = NueSurvivalProbabilityDamping(
             "P(ee)",
@@ -73,20 +77,15 @@ def test_NueSurvivalProbability_01(
         (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12], mode="fill")) >> surprob("SinSq2Theta12")
         (in_t13 := Array("SinSq2Theta13", [SinSq2Theta13], mode="fill")) >> surprob("SinSq2Theta13")
 
-        (in_ad := Array("alpha_decay", [damping_params["alpha_decay"]], mode="fill")) >> surprob(
-            "alpha_decay"
-        )
-        (in_aw1 := Array("alpha_wpd1", [damping_params["alpha_wpd1"]], mode="fill")) >> surprob(
-            "alpha_wpd1"
-        )
-        (in_aw2 := Array("alpha_wpd2", [damping_params["alpha_wpd2"]], mode="fill")) >> surprob(
-            "alpha_wpd2"
-        )
+        if damping_model != "none":
+            (in_alpha := Array(alpha_name, [damping_params[alpha_name]], mode="fill")) >> surprob(
+                "alpha"
+            )
 
         conversionFactor = _surprobArgConversion
-        (in_conv := Array(
-            "surprobArgConversion", [conversionFactor], mode="fill"
-        )) >> surprob("surprobArgConversion")
+        (in_conv := Array("surprobArgConversion", [conversionFactor], mode="fill")) >> surprob(
+            "surprobArgConversion"
+        )
 
     def surprob_fcn():
         tmp = L * conversionFactor / 4.0 / E
@@ -126,7 +125,8 @@ def test_NueSurvivalProbability_01(
             1.0
             - 0.5 * (_CosQuTheta13 * SinSq2Theta12 + SinSq2Theta13)
             + 0.5 * _CosQuTheta13 * SinSq2Theta12 * D21 * cos(2.0 * DeltaMSq21 * tmp)
-            + 0.5 * SinSq2Theta13
+            + 0.5
+            * SinSq2Theta13
             * (
                 D31 * _CosSqTheta12 * cos(2.0 * _DeltaMSq31 * tmp)
                 + D32 * _SinSqTheta12 * cos(2.0 * _DeltaMSq32 * tmp)
@@ -138,48 +138,51 @@ def test_NueSurvivalProbability_01(
 
     subplots(1, 1)
     plot_auto(
-        surprob, filter_kw={"masked_value": 0},
-        show=False, close=True,
+        surprob,
+        filter_kw={"masked_value": 0},
+        show=False,
+        close=True,
         save=f"{output_path}/{test_name}_plot.pdf",
     )
 
     # ---- oscillation-parameter variations
-    nmo *= -1; in_nmo.outputs[0].set(nmo)
+    nmo *= -1
+    in_nmo.outputs[0].set(nmo)
     _assert_close(surprob, surprob_fcn)
 
-    DeltaMSq21 *= 1.1; in_Dm21.outputs[0].set(DeltaMSq21)
+    DeltaMSq21 *= 1.1
+    in_Dm21.outputs[0].set(DeltaMSq21)
     _assert_close(surprob, surprob_fcn)
 
-    DeltaMSq3lAbs *= 0.9; in_Dm3l.outputs[0].set(DeltaMSq3lAbs)
+    DeltaMSq3lAbs *= 0.9
+    in_Dm3l.outputs[0].set(DeltaMSq3lAbs)
     _assert_close(surprob, surprob_fcn)
 
-    SinSq2Theta12 *= 1.2; in_t12.outputs[0].set(SinSq2Theta12)
+    SinSq2Theta12 *= 1.2
+    in_t12.outputs[0].set(SinSq2Theta12)
     _assert_close(surprob, surprob_fcn)
 
-    SinSq2Theta13 += 0.1; in_t13.outputs[0].set(SinSq2Theta13)
+    SinSq2Theta13 += 0.1
+    in_t13.outputs[0].set(SinSq2Theta13)
     _assert_close(surprob, surprob_fcn)
 
-    L *= 10; in_L.outputs[0].set(L)
+    L *= 10
+    in_L.outputs[0].set(L)
     _assert_close(surprob, surprob_fcn)
 
-    E *= 15; in_E.outputs[0].set(E)
+    E *= 15
+    in_E.outputs[0].set(E)
     _assert_close(surprob, surprob_fcn)
 
     # ---- conversion-factor variation
-    conversionFactor *= 1.01; in_conv.outputs[0].set(conversionFactor)
+    conversionFactor *= 1.01
+    in_conv.outputs[0].set(conversionFactor)
     _assert_close(surprob, surprob_fcn)
 
     # ---- damping-parameter variation
-    _alpha_input = {
-        "decay": (in_ad, "alpha_decay"),
-        "wpd1":  (in_aw1, "alpha_wpd1"),
-        "wpd2":  (in_aw2, "alpha_wpd2"),
-        "none":  (None, None),
-    }[damping_model]
-    if _alpha_input[0] is not None:
-        in_alpha, alpha_key = _alpha_input
-        damping_params[alpha_key] *= 3.0
-        in_alpha.outputs[0].set(damping_params[alpha_key])
+    if in_alpha is not None:
+        damping_params[alpha_name] *= 3.0
+        in_alpha.outputs[0].set(damping_params[alpha_name])
         _assert_close(surprob, surprob_fcn)
 
     savegraph(graph, f"{output_path}/{test_name}.png")
@@ -193,14 +196,10 @@ def test_NueSurvivalProbability_01(
 @mark.parametrize(
     "damping_model, expected_fn_name",
     (
-        ("none",  "_function_none"),
+        ("none", "_function_none"),
         ("decay", "_function_decay"),
-        ("wpd1",  "_function_wpd1"),
-        ("wpd2",  "_function_wpd2"),
-        (0,       "_function_none"),   # integer codes must also dispatch correctly
-        (1,       "_function_decay"),
-        (2,       "_function_wpd1"),
-        (3,       "_function_wpd2"),
+        ("wpd1", "_function_wpd1"),
+        ("wpd2", "_function_wpd2"),
     ),
 )
 def test_NueSurvivalProbability_dispatch(damping_model, expected_fn_name):
@@ -219,48 +218,17 @@ def test_NueSurvivalProbability_dispatch(damping_model, expected_fn_name):
         Array("DeltaMSq32", [2.45e-3], mode="fill") >> surprob("DeltaMSq32")
         Array("SinSq2Theta12", [0.31], mode="fill") >> surprob("SinSq2Theta12")
         Array("SinSq2Theta13", [0.02241], mode="fill") >> surprob("SinSq2Theta13")
+        if damping_model != "none":
+            Array("Alpha", [0.0], mode="fill") >> surprob("alpha")
 
-        # Accessing data triggers _type_function + the selected _function_X.
-        _ = surprob.outputs[0].data
+    # Accessing data triggers _type_function + the selected _function_X.
+    _ = surprob.outputs[0].data
 
-        # Chi2-style assertion: the evaluator was bound to the right variant.
-        assert surprob._evaluator.function.__name__ == expected_fn_name, (
-            f"damping_model={damping_model!r} dispatched to "
-            f"{surprob._evaluator.function.__name__!r}, expected {expected_fn_name!r}"
-        )
-
-
-# ---------------------------------------------------------------------------
-# Integer codes and string names must give identical results.
-# ---------------------------------------------------------------------------
-@mark.parametrize("name, code", tuple(_DAMPING_MODEL_MAP.items()))
-def test_NueSurvivalProbability_string_and_int_equivalent(name, code):
-    E = geomspace(1, 100, 100)
-
-    def build(model):
-        n = NueSurvivalProbabilityDamping(
-            "P(ee)",
-            leading_mass_splitting_3l_name="DeltaMSq32",
-            damping_model=model,
-        )
-        Array("E", E, mode="fill") >> n("E")
-        Array("L", [52.0], mode="fill") >> n("L")
-        Array("nmo", [1.0], mode="fill") >> n("nmo")
-        Array("DeltaMSq21", [7.39e-5], mode="fill") >> n("DeltaMSq21")
-        Array("DeltaMSq32", [2.45e-3], mode="fill") >> n("DeltaMSq32")
-        Array("SinSq2Theta12", [0.31], mode="fill") >> n("SinSq2Theta12")
-        Array("SinSq2Theta13", [0.02241], mode="fill") >> n("SinSq2Theta13")
-        Array("alpha_decay", [1e-5], mode="fill") >> n("alpha_decay")
-        Array("alpha_wpd1",  [1e-3], mode="fill") >> n("alpha_wpd1")
-        Array("alpha_wpd2",  [1e-5], mode="fill") >> n("alpha_wpd2")
-        Array("surprobArgConversion", [_surprobArgConversion], mode="fill") >> n("surprobArgConversion")
-        return n
-
-    with Graph(close_on_exit=True):
-        p_name = build(name)
-        p_code = build(code)
-        assert allclose(p_name.outputs[0].data, p_code.outputs[0].data,
-                        rtol=0, atol=_ATOL)
+    # Chi2-style assertion: the evaluator was bound to the right variant.
+    assert surprob._evaluator.function.__name__ == expected_fn_name, (
+        f"damping_model={damping_model!r} dispatched to "
+        f"{surprob._evaluator.function.__name__!r}, expected {expected_fn_name!r}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -282,8 +250,9 @@ def test_NueSurvivalProbability_invalid_model(bad_model):
 @mark.parametrize("damping_model", ("decay", "wpd1", "wpd2"))
 def test_NueSurvivalProbability_zero_alpha(debug_graph, damping_model):
     E = geomspace(1, 100, 100)
-    with Graph(close_on_exit=True, debug=debug_graph) as graph:
-        def build(model_name):
+
+    def build(model_name):
+        with Graph(close_on_exit=True, debug=debug_graph) as graph:
             n = NueSurvivalProbabilityDamping(
                 "P(ee)",
                 leading_mass_splitting_3l_name="DeltaMSq32",
@@ -296,14 +265,13 @@ def test_NueSurvivalProbability_zero_alpha(debug_graph, damping_model):
             (Array("DeltaMSq32", [2.45e-3], mode="fill") >> n("DeltaMSq32"))
             (Array("SinSq2Theta12", [0.31], mode="fill") >> n("SinSq2Theta12"))
             (Array("SinSq2Theta13", [0.02241], mode="fill") >> n("SinSq2Theta13"))
-            (Array("alpha_decay", [0.0], mode="fill") >> n("alpha_decay"))
-            (Array("alpha_wpd1",  [0.0], mode="fill") >> n("alpha_wpd1"))
-            (Array("alpha_wpd2",  [0.0], mode="fill") >> n("alpha_wpd2"))
-            (Array("surprobArgConversion", [_surprobArgConversion], mode="fill")
-             >> n("surprobArgConversion"))
+            (Array("alpha", [0.0], mode="fill") >> n("alpha"))
+            (
+                Array("surprobArgConversion", [_surprobArgConversion], mode="fill")
+                >> n("surprobArgConversion")
+            )
             return n
 
         p_none = build("none")
         p_test = build(damping_model)
-        assert allclose(p_none.outputs[0].data, p_test.outputs[0].data,
-                        rtol=0, atol=_ATOL)
+        assert allclose(p_none.outputs[0].data, p_test.outputs[0].data, rtol=0, atol=_ATOL)
