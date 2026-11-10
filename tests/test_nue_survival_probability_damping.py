@@ -1,309 +1,240 @@
-#!/usr/bin/env python
+"""AI-assisted revision.
+"""
 
+import numpy as np
+import pytest
+from dag_modelling.core.exception import TypeFunctionError
 from dag_modelling.core.graph import Graph
 from dag_modelling.lib.common import Array
-from dag_modelling.plot.graphviz import savegraph
-from dag_modelling.plot.plot import plot_auto
-from matplotlib.pyplot import subplots
-from numpy import allclose, arcsin, cos, exp, expm1, finfo, geomspace, sin, sqrt
-from pytest import mark, raises
 
-from dgm_reactor_neutrino import NueSurvivalProbabilityDamping
 from dgm_reactor_neutrino.nue_survival_probability_damping import (
+    NueSurvivalProbabilityDamping,
     _surprobArgConversion,
-    _DAMPING_MODEL_MAP,
 )
 
-_DAMPING_CASES = ("none", "decay", "wpd1", "wpd2")
-_DAMPING_CASES_INT = tuple(sorted(_DAMPING_MODEL_MAP.values()))   # (0, 1, 2, 3)
+MODELS = ("none", "decay", "wpd1", "wpd2")
+DAMPED_MODELS = ("decay", "wpd1", "wpd2")
+# Coefficients produce visible damping at a JUNO-like baseline.
+ALPHA_BY_MODEL = {
+    "decay": 1.0e-4,  # MeV/m
+    "wpd1": 1.0e4,  # MeV^4 / (eV^4 km^2)
+    "wpd2": 1.0e3,  # MeV^2 / (eV^4 km^2)
+}
+ENERGY_MEV = np.linspace(1.8, 8.0, 96)
+ABSOLUTE_TOLERANCE = 2.0e-13
 
-_ATOL = 10.0 * finfo("d").resolution
 
-
-def _assert_close(surprob, reference):
-    assert surprob.tainted is True
-    assert allclose(surprob.outputs[0].data, reference(), rtol=0, atol=_ATOL)
-    assert surprob.tainted is False
-
-
-# ---------------------------------------------------------------------------
-# The physics test — one parametrization per model, per L, per NMO.
-# This is what actually exercises the four kernels end-to-end.
-# ---------------------------------------------------------------------------
-@mark.parametrize("nmo", (1, -1))
-@mark.parametrize(
-    "L,leading_mass_splitting_3l_name",
-    ((2, "DeltaMSq32"), (52, "DeltaMSq31"), (180, "DeltaMSq32")),
-)
-@mark.parametrize("damping_model", _DAMPING_CASES)
-def test_NueSurvivalProbability_01(
-    debug_graph, test_name, L,
-    leading_mass_splitting_3l_name, nmo,
-    damping_model, output_path: str,
-):
-    E = geomspace(1, 100, 1000)  # MeV
-    DeltaMSq21 = 7.39 * 1e-5       # eV^2
-    DeltaMSq3lAbs = 2.45 * 1e-3    # eV^2
-    SinSq2Theta12 = 3.1e-1
-    SinSq2Theta13 = 2.241e-2
-    is_dm32_leading = leading_mass_splitting_3l_name == "DeltaMSq32"
-    is_dm31_leading = leading_mass_splitting_3l_name == "DeltaMSq31"
-
-    damping_params = {
-        "alpha_decay": 1e-5,   # MeV/m
-        "alpha_wpd1":  1e-3,   # MeV^2
-        "alpha_wpd2":  1e-5,   # dimensionless
+def _default_inputs(leading_splitting="DeltaMSq32", mass_ordering_sign=1.0):
+    """Keys are public port names; scalars always have shape (1,)."""
+    return {
+        "E": ENERGY_MEV.copy(),
+        "L": np.array([52.5]),  # km unless the node declares distance_unit="m"
+        "nmo": np.array([mass_ordering_sign]),
+        "DeltaMSq21": np.array([7.53e-5]),  # eV^2
+        leading_splitting: np.array([2.453e-3]),  # positive magnitude, eV^2
+        "SinSq2Theta12": np.array([0.851]),  # sin^2(2 theta_12)
+        "SinSq2Theta13": np.array([0.085]),  # sin^2(2 theta_13)
     }
 
-    with Graph(close_on_exit=True, debug=debug_graph) as graph:
-        # damping_model is a constructor argument (Medium+), resolved in
-        # __init__ and selected in _type_function (Chi2 pattern).
-        surprob = NueSurvivalProbabilityDamping(
-            "P(ee)",
-            leading_mass_splitting_3l_name=leading_mass_splitting_3l_name,
-            damping_model=damping_model,
+
+def _connect_inputs(node, input_values):
+    """Call only during graph construction; do not read .data here."""
+    sources = {}
+    for port_name, values in input_values.items():
+        source = Array(port_name, values, mode="fill")
+        source >> node(port_name)
+        sources[port_name] = source
+    return sources
+
+
+def _build_node(model, input_values, *, leading_splitting="DeltaMSq32", distance_unit="km"):
+    """Return a closed graph's node and its mutable input sources."""
+    with Graph(close_on_exit=True):
+        node = NueSurvivalProbabilityDamping(
+            "survival_probability",
+            damping_model=model,
+            leading_mass_splitting_3l_name=leading_splitting,
+            distance_unit=distance_unit,
         )
-        (in_E := Array("E", E, mode="fill")) >> surprob("E")
-        (in_L := Array("L", [L], mode="fill")) >> surprob("L")
-        (in_nmo := Array("nmo", [nmo], mode="fill")) >> surprob("nmo")
-        (in_Dm21 := Array("DeltaMSq21", [DeltaMSq21], mode="fill")) >> surprob("DeltaMSq21")
-        (in_Dm3l := Array(leading_mass_splitting_3l_name, [DeltaMSq3lAbs], mode="fill")) >> surprob(
-            leading_mass_splitting_3l_name
+        sources = _connect_inputs(node, input_values)
+    return node, sources
+
+
+def _reference_probability(model, input_values, leading_splitting="DeltaMSq32", distance_unit="km"):
+    """Independent NumPy reference from the three mass-state probabilities."""
+    energy_mev = input_values["E"]
+    baseline_km = input_values["L"][0] * (1.0 if distance_unit == "km" else 1.0e-3)
+    theta_12 = 0.5 * np.arcsin(np.sqrt(input_values["SinSq2Theta12"][0]))
+    theta_13 = 0.5 * np.arcsin(np.sqrt(input_values["SinSq2Theta13"][0]))
+    electron_weights = (
+        np.cos(theta_13) ** 2 * np.cos(theta_12) ** 2,
+        np.cos(theta_13) ** 2 * np.sin(theta_12) ** 2,
+        np.sin(theta_13) ** 2,
+    )
+    solar_splitting = input_values["DeltaMSq21"][0]
+    signed_leading_splitting = input_values["nmo"][0] * input_values[leading_splitting][0]
+    splitting_31 = (
+        signed_leading_splitting + solar_splitting
+        if leading_splitting == "DeltaMSq32"
+        else signed_leading_splitting
+    )
+    # An arbitrary common mass-squared offset cancels from all interference terms.
+    mass_squared_values = (0.0, solar_splitting, splitting_31)
+    conversion = input_values.get("surprobArgConversion", [_surprobArgConversion])[0]
+    alpha = input_values.get("alpha", [0.0])[0]
+    if model in ("none", "decay"):
+        amplitude = np.zeros_like(energy_mev, dtype=complex)
+        for mass_index, (weight, mass_squared) in enumerate(
+            zip(electron_weights, mass_squared_values)
+        ):
+            survival_amplitude = 1.0
+            if model == "decay" and mass_index == 2:
+                survival_amplitude = np.exp(-alpha * baseline_km * 1000.0 / (2.0 * energy_mev))
+            phase = conversion * mass_squared * baseline_km / (2.0 * energy_mev)
+            amplitude += weight * survival_amplitude * np.exp(-1j * phase)
+        return np.abs(amplitude) ** 2
+
+    probability = np.full_like(energy_mev, sum(weight**2 for weight in electron_weights))
+    energy_power = {"wpd1": 4, "wpd2": 2}[model]
+    for lower_index, upper_index in ((0, 1), (0, 2), (1, 2)):
+        splitting = mass_squared_values[upper_index] - mass_squared_values[lower_index]
+        damping = np.exp(-alpha * splitting**2 * baseline_km**2 / energy_mev**energy_power)
+        phase = conversion * splitting * baseline_km / (2.0 * energy_mev)
+        probability += (
+            2.0
+            * electron_weights[lower_index]
+            * electron_weights[upper_index]
+            * damping
+            * np.cos(phase)
         )
-        (in_t12 := Array("SinSq2Theta12", [SinSq2Theta12], mode="fill")) >> surprob("SinSq2Theta12")
-        (in_t13 := Array("SinSq2Theta13", [SinSq2Theta13], mode="fill")) >> surprob("SinSq2Theta13")
+    return probability
 
-        (in_ad := Array("alpha_decay", [damping_params["alpha_decay"]], mode="fill")) >> surprob(
-            "alpha_decay"
-        )
-        (in_aw1 := Array("alpha_wpd1", [damping_params["alpha_wpd1"]], mode="fill")) >> surprob(
-            "alpha_wpd1"
-        )
-        (in_aw2 := Array("alpha_wpd2", [damping_params["alpha_wpd2"]], mode="fill")) >> surprob(
-            "alpha_wpd2"
-        )
 
-        conversionFactor = _surprobArgConversion
-        (in_conv := Array(
-            "surprobArgConversion", [conversionFactor], mode="fill"
-        )) >> surprob("surprobArgConversion")
+def _assert_probability_and_cache_state(node, expected_probability):
+    """Check numerical agreement, clean state, and reuse of the output buffer."""
+    assert node.tainted
+    result = node.outputs["result"].data
+    np.testing.assert_allclose(result, expected_probability, rtol=0, atol=ABSOLUTE_TOLERANCE)
+    assert not node.tainted
+    assert node.outputs["result"].data is result
+    assert not node.tainted
 
-    def surprob_fcn():
-        tmp = L * conversionFactor / 4.0 / E
 
-        _DeltaMSq31 = nmo * DeltaMSq3lAbs + DeltaMSq21 * is_dm32_leading
-        _DeltaMSq32 = nmo * DeltaMSq3lAbs - DeltaMSq21 * is_dm31_leading
-
-        theta12 = 0.5 * arcsin(sqrt(SinSq2Theta12))
-        theta13 = 0.5 * arcsin(sqrt(SinSq2Theta13))
-
-        _SinSqTheta12 = sin(theta12) ** 2
-        _CosSqTheta12 = cos(theta12) ** 2
-        _CosQuTheta13 = (cos(theta13) ** 2) ** 2
-        _SinQuTheta13 = (sin(theta13) ** 2) ** 2
-
-        D21, D31, D32 = 1.0, 1.0, 1.0
-        correction = 0.0
-
-        if damping_model == "decay":
-            L_m = L * 1000.0
-            a = damping_params["alpha_decay"]
-            D31 = exp(-a * L_m / (2.0 * E))
-            D32 = D31
-            correction = _SinQuTheta13 * expm1(-a * L_m / E)
-        elif damping_model == "wpd1":
-            a = damping_params["alpha_wpd1"]
-            D21 = exp(-a * DeltaMSq21**2 * L**2 / E**4)
-            D31 = exp(-a * _DeltaMSq31**2 * L**2 / E**4)
-            D32 = exp(-a * _DeltaMSq32**2 * L**2 / E**4)
-        elif damping_model == "wpd2":
-            a = damping_params["alpha_wpd2"]
-            D21 = exp(-a * DeltaMSq21**2 * L**2 / E**2)
-            D31 = exp(-a * _DeltaMSq31**2 * L**2 / E**2)
-            D32 = exp(-a * _DeltaMSq32**2 * L**2 / E**2)
-
-        return (
-            1.0
-            - 0.5 * (_CosQuTheta13 * SinSq2Theta12 + SinSq2Theta13)
-            + 0.5 * _CosQuTheta13 * SinSq2Theta12 * D21 * cos(2.0 * DeltaMSq21 * tmp)
-            + 0.5 * SinSq2Theta13
-            * (
-                D31 * _CosSqTheta12 * cos(2.0 * _DeltaMSq31 * tmp)
-                + D32 * _SinSqTheta12 * cos(2.0 * _DeltaMSq32 * tmp)
-            )
-            + correction
-        )
-
-    _assert_close(surprob, surprob_fcn)
-
-    subplots(1, 1)
-    plot_auto(
-        surprob, filter_kw={"masked_value": 0},
-        show=False, close=True,
-        save=f"{output_path}/{test_name}_plot.pdf",
+@pytest.mark.parametrize("model", MODELS)
+@pytest.mark.parametrize("leading_splitting", ("DeltaMSq31", "DeltaMSq32"))
+@pytest.mark.parametrize("mass_ordering_sign", (1.0, -1.0))
+def test_probability_matches_independent_reference(model, leading_splitting, mass_ordering_sign):
+    input_values = _default_inputs(leading_splitting, mass_ordering_sign)
+    if model != "none":
+        input_values["alpha"] = np.array([ALPHA_BY_MODEL[model]])
+    node, _ = _build_node(model, input_values, leading_splitting=leading_splitting)
+    # Closing selects the function; reading .data below triggers numerical evaluation.
+    assert node._evaluator.function.__name__ == f"_function_{model}"
+    _assert_probability_and_cache_state(
+        node, _reference_probability(model, input_values, leading_splitting)
     )
 
-    # ---- oscillation-parameter variations
-    nmo *= -1; in_nmo.outputs[0].set(nmo)
-    _assert_close(surprob, surprob_fcn)
 
-    DeltaMSq21 *= 1.1; in_Dm21.outputs[0].set(DeltaMSq21)
-    _assert_close(surprob, surprob_fcn)
-
-    DeltaMSq3lAbs *= 0.9; in_Dm3l.outputs[0].set(DeltaMSq3lAbs)
-    _assert_close(surprob, surprob_fcn)
-
-    SinSq2Theta12 *= 1.2; in_t12.outputs[0].set(SinSq2Theta12)
-    _assert_close(surprob, surprob_fcn)
-
-    SinSq2Theta13 += 0.1; in_t13.outputs[0].set(SinSq2Theta13)
-    _assert_close(surprob, surprob_fcn)
-
-    L *= 10; in_L.outputs[0].set(L)
-    _assert_close(surprob, surprob_fcn)
-
-    E *= 15; in_E.outputs[0].set(E)
-    _assert_close(surprob, surprob_fcn)
-
-    # ---- conversion-factor variation
-    conversionFactor *= 1.01; in_conv.outputs[0].set(conversionFactor)
-    _assert_close(surprob, surprob_fcn)
-
-    # ---- damping-parameter variation
-    _alpha_input = {
-        "decay": (in_ad, "alpha_decay"),
-        "wpd1":  (in_aw1, "alpha_wpd1"),
-        "wpd2":  (in_aw2, "alpha_wpd2"),
-        "none":  (None, None),
-    }[damping_model]
-    if _alpha_input[0] is not None:
-        in_alpha, alpha_key = _alpha_input
-        damping_params[alpha_key] *= 3.0
-        in_alpha.outputs[0].set(damping_params[alpha_key])
-        _assert_close(surprob, surprob_fcn)
-
-    savegraph(graph, f"{output_path}/{test_name}.png")
+@pytest.mark.parametrize("model", MODELS)
+def test_changed_inputs_invalidate_cached_result(model):
+    input_values = _default_inputs()
+    input_values["surprobArgConversion"] = np.array([_surprobArgConversion])
+    if model != "none":
+        input_values["alpha"] = np.array([ALPHA_BY_MODEL[model]])
+    node, sources = _build_node(model, input_values)
+    _assert_probability_and_cache_state(node, _reference_probability(model, input_values))
+    # One graph per model; mutate each dependency instead of rebuilding graphs.
+    updates = {
+        "E": ENERGY_MEV * 1.03,
+        "L": np.array([54.0]),
+        "nmo": np.array([-1.0]),
+        "DeltaMSq21": np.array([7.8e-5]),
+        "DeltaMSq32": np.array([2.5e-3]),
+        "SinSq2Theta12": np.array([0.83]),
+        "SinSq2Theta13": np.array([0.09]),
+        "surprobArgConversion": np.array([_surprobArgConversion * 1.01]),
+    }
+    if model != "none":
+        updates["alpha"] = np.array([ALPHA_BY_MODEL[model] * 2.0])
+    for port_name, values in updates.items():
+        input_values[port_name] = values
+        sources[port_name].outputs[0].set(values)
+        _assert_probability_and_cache_state(node, _reference_probability(model, input_values))
 
 
-# ---------------------------------------------------------------------------
-# Chi2-dispatch check: after _type_function has run, the evaluator
-# must point to the model-specific _function_X.  This catches the class
-# of bug where the registry is populated but the wrong key is selected.
-# ---------------------------------------------------------------------------
-@mark.parametrize(
-    "damping_model, expected_fn_name",
-    (
-        ("none",  "_function_none"),
-        ("decay", "_function_decay"),
-        ("wpd1",  "_function_wpd1"),
-        ("wpd2",  "_function_wpd2"),
-        (0,       "_function_none"),   # integer codes must also dispatch correctly
-        (1,       "_function_decay"),
-        (2,       "_function_wpd1"),
-        (3,       "_function_wpd2"),
-    ),
-)
-def test_NueSurvivalProbability_dispatch(damping_model, expected_fn_name):
-    """_type_function must bind the model-specific _function_X (Chi2 pattern)."""
-    E = geomspace(1, 100, 10)
-    with Graph(close_on_exit=True) as graph:
-        surprob = NueSurvivalProbabilityDamping(
-            "P(ee)",
+@pytest.fixture(scope="module")
+def standard_probability():
+    """Calculate the standard oscillation baseline once for all zero-alpha cases."""
+    node, _ = _build_node("none", _default_inputs())
+    return node.outputs["result"].data.copy()
+
+
+@pytest.mark.parametrize("model", DAMPED_MODELS)
+@pytest.mark.parametrize("explicit_zero", (False, True), ids=("omitted_alpha", "zero_alpha"))
+def test_zero_damping_matches_standard_oscillations(model, explicit_zero, standard_probability):
+    input_values = _default_inputs()
+    if explicit_zero:
+        input_values["alpha"] = np.array([0.0])
+    node, _ = _build_node(model, input_values)
+    _assert_probability_and_cache_state(node, standard_probability)
+
+
+@pytest.mark.parametrize("model", MODELS)
+def test_metre_and_kilometre_baselines_are_equivalent(model):
+    input_values = _default_inputs()
+    if model != "none":
+        input_values["alpha"] = np.array([ALPHA_BY_MODEL[model]])
+    expected = _reference_probability(model, input_values)
+    input_values["L"] = np.array([52500.0])
+    node, _ = _build_node(model, input_values, distance_unit="m")
+    _assert_probability_and_cache_state(node, expected)
+
+
+@pytest.mark.parametrize("invalid_model", ("unknown", "wpd3", 0, 1, -1, None, []))
+def test_model_selector_accepts_only_supported_strings(invalid_model):
+    with pytest.raises(ValueError, match="Unknown damping_model"):
+        NueSurvivalProbabilityDamping(
+            "survival_probability",
             leading_mass_splitting_3l_name="DeltaMSq32",
-            damping_model=damping_model,
-        )
-        Array("E", E, mode="fill") >> surprob("E")
-        Array("L", [52.0], mode="fill") >> surprob("L")
-        Array("nmo", [1.0], mode="fill") >> surprob("nmo")
-        Array("DeltaMSq21", [7.39e-5], mode="fill") >> surprob("DeltaMSq21")
-        Array("DeltaMSq32", [2.45e-3], mode="fill") >> surprob("DeltaMSq32")
-        Array("SinSq2Theta12", [0.31], mode="fill") >> surprob("SinSq2Theta12")
-        Array("SinSq2Theta13", [0.02241], mode="fill") >> surprob("SinSq2Theta13")
-
-        # Accessing data triggers _type_function + the selected _function_X.
-        _ = surprob.outputs[0].data
-
-        # Chi2-style assertion: the evaluator was bound to the right variant.
-        assert surprob._evaluator.function.__name__ == expected_fn_name, (
-            f"damping_model={damping_model!r} dispatched to "
-            f"{surprob._evaluator.function.__name__!r}, expected {expected_fn_name!r}"
+            damping_model=invalid_model,
         )
 
 
-# ---------------------------------------------------------------------------
-# Integer codes and string names must give identical results.
-# ---------------------------------------------------------------------------
-@mark.parametrize("name, code", tuple(_DAMPING_MODEL_MAP.items()))
-def test_NueSurvivalProbability_string_and_int_equivalent(name, code):
-    E = geomspace(1, 100, 100)
+def test_integer_energy_is_rejected_before_allocation():
+    input_values = _default_inputs()
+    input_values["E"] = np.array([2, 4, 6])
+    with pytest.raises(TypeFunctionError):
+        _build_node("none", input_values)
 
-    def build(model):
-        n = NueSurvivalProbabilityDamping(
-            "P(ee)",
+
+@pytest.mark.parametrize("model", MODELS)
+def test_multidimensional_energy_preserves_shape(model):
+    input_values = _default_inputs()
+    input_values["E"] = ENERGY_MEV.reshape(8, 12)
+    if model != "none":
+        input_values["alpha"] = np.array([ALPHA_BY_MODEL[model]])
+    node, _ = _build_node(model, input_values)
+    _assert_probability_and_cache_state(node, _reference_probability(model, input_values))
+    assert node.outputs["result"].data.shape == (8, 12)
+
+
+@pytest.mark.parametrize("replica_key", ((), "AD11", ("EH1", "AD11")))
+@pytest.mark.parametrize("model", ("none", "wpd1"))
+def test_replication_keys_and_model_specific_alpha_port(replica_key, model):
+    key_parts = (replica_key,) if isinstance(replica_key, str) else replica_key
+    input_values = _default_inputs()
+    if model != "none":
+        input_values["alpha"] = np.array([ALPHA_BY_MODEL[model]])
+    with Graph(close_on_exit=True):
+        _, storage = NueSurvivalProbabilityDamping.replicate(
+            name="survival",
+            replicate_outputs=(replica_key,),
             leading_mass_splitting_3l_name="DeltaMSq32",
             damping_model=model,
         )
-        Array("E", E, mode="fill") >> n("E")
-        Array("L", [52.0], mode="fill") >> n("L")
-        Array("nmo", [1.0], mode="fill") >> n("nmo")
-        Array("DeltaMSq21", [7.39e-5], mode="fill") >> n("DeltaMSq21")
-        Array("DeltaMSq32", [2.45e-3], mode="fill") >> n("DeltaMSq32")
-        Array("SinSq2Theta12", [0.31], mode="fill") >> n("SinSq2Theta12")
-        Array("SinSq2Theta13", [0.02241], mode="fill") >> n("SinSq2Theta13")
-        Array("alpha_decay", [1e-5], mode="fill") >> n("alpha_decay")
-        Array("alpha_wpd1",  [1e-3], mode="fill") >> n("alpha_wpd1")
-        Array("alpha_wpd2",  [1e-5], mode="fill") >> n("alpha_wpd2")
-        Array("surprobArgConversion", [_surprobArgConversion], mode="fill") >> n("surprobArgConversion")
-        return n
-
-    with Graph(close_on_exit=True):
-        p_name = build(name)
-        p_code = build(code)
-        assert allclose(p_name.outputs[0].data, p_code.outputs[0].data,
-                        rtol=0, atol=_ATOL)
-
-
-# ---------------------------------------------------------------------------
-# Constructor must reject unknown / non-integer damping-model codes.
-# ---------------------------------------------------------------------------
-@mark.parametrize("bad_model", ("unknown", "wpd3", 4, -1, 99))
-def test_NueSurvivalProbability_invalid_model(bad_model):
-    with raises(ValueError):
-        NueSurvivalProbabilityDamping(
-            "P(ee)",
-            leading_mass_splitting_3l_name="DeltaMSq32",
-            damping_model=bad_model,
-        )
-
-
-# ---------------------------------------------------------------------------
-# With α = 0 all damping models reduce to the no-damping result.
-# ---------------------------------------------------------------------------
-@mark.parametrize("damping_model", ("decay", "wpd1", "wpd2"))
-def test_NueSurvivalProbability_zero_alpha(debug_graph, damping_model):
-    E = geomspace(1, 100, 100)
-    with Graph(close_on_exit=True, debug=debug_graph) as graph:
-        def build(model_name):
-            n = NueSurvivalProbabilityDamping(
-                "P(ee)",
-                leading_mass_splitting_3l_name="DeltaMSq32",
-                damping_model=model_name,
-            )
-            (Array("E", E, mode="fill") >> n("E"))
-            (Array("L", [52.0], mode="fill") >> n("L"))
-            (Array("nmo", [1.0], mode="fill") >> n("nmo"))
-            (Array("DeltaMSq21", [7.39e-5], mode="fill") >> n("DeltaMSq21"))
-            (Array("DeltaMSq32", [2.45e-3], mode="fill") >> n("DeltaMSq32"))
-            (Array("SinSq2Theta12", [0.31], mode="fill") >> n("SinSq2Theta12"))
-            (Array("SinSq2Theta13", [0.02241], mode="fill") >> n("SinSq2Theta13"))
-            (Array("alpha_decay", [0.0], mode="fill") >> n("alpha_decay"))
-            (Array("alpha_wpd1",  [0.0], mode="fill") >> n("alpha_wpd1"))
-            (Array("alpha_wpd2",  [0.0], mode="fill") >> n("alpha_wpd2"))
-            (Array("surprobArgConversion", [_surprobArgConversion], mode="fill")
-             >> n("surprobArgConversion"))
-            return n
-
-        p_none = build("none")
-        p_test = build(damping_model)
-        assert allclose(p_none.outputs[0].data, p_test.outputs[0].data,
-                        rtol=0, atol=_ATOL)
+        node = storage["nodes"][("survival",) + key_parts]
+        assert storage["inputs"][("survival", "enu") + key_parts] is node.inputs["E"]
+        alpha_key = ("survival", "alpha") + key_parts
+        assert (alpha_key in storage["inputs"]) == (model != "none")
+        _connect_inputs(node, input_values)
+    _assert_probability_and_cache_state(node, _reference_probability(model, input_values))

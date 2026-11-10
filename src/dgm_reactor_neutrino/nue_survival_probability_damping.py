@@ -1,3 +1,5 @@
+"""AI-assisted revision"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
@@ -8,130 +10,362 @@ from dag_modelling.core.storage import NodeStorage
 from dag_modelling.core.type_functions import (
     assign_axes_from_inputs_to_outputs,
     check_shape_of_inputs,
+    check_subtype_of_inputs,
     copy_from_inputs_to_outputs,
 )
 from numba import njit
-from numpy import array, cos, exp, expm1, pi, sin, sqrt
+from numpy import array, cos, exp, expm1, floating, pi, sqrt
 from scipy.constants import value
 
 if TYPE_CHECKING:
     from typing import Literal
 
-    from dag_modelling.core.node import Node
     from dag_modelling.core.output import Output
     from nested_mapping.typing import KeyLike
     from numpy import double
     from numpy.typing import NDArray
 
+# Cosine phase = K * DeltaMSq[eV^2] * L[km] / (2 * E[MeV]).
 _surprobArgConversion = pi * 2e-3 * value("electron volt-inverse meter relationship")
 
-_DAMPING_NONE = 0
-_DAMPING_DECAY = 1
-_DAMPING_WPD1 = 2
-_DAMPING_WPD2 = 3
+_DAMPING_MODELS = {"none", "decay", "wpd1", "wpd2"}
 
-_DAMPING_MODEL_MAP = {
-    "none": _DAMPING_NONE,
-    "decay": _DAMPING_DECAY,
-    "wpd1": _DAMPING_WPD1,
-    "wpd2": _DAMPING_WPD2,
-}
+
+@njit(cache=NUMBA_CACHE_ENABLE)
+def _get_common_amplitudes(sin_squared_double_theta_12, sin_squared_double_theta_13):
+    sin_squared_theta_12 = 0.5 * (1 - sqrt(1 - sin_squared_double_theta_12))  # sin²θ₁₂
+    cos_squared_theta_12 = 1.0 - sin_squared_theta_12  # cos²θ₁₂
+    sin_squared_theta_13 = 0.5 * (1 - sqrt(1 - sin_squared_double_theta_13))  # sin²θ₁₃
+    cos_squared_theta_13 = 1.0 - sin_squared_theta_13  # cos²θ₁₃
+    cos_fourth_theta_13 = cos_squared_theta_13 * cos_squared_theta_13  # cos⁴θ₁₃
+    sin_fourth_theta_13 = sin_squared_theta_13 * sin_squared_theta_13  # sin⁴θ₁₃
+
+    diagonal_probability = 1.0 - 0.5 * (
+        cos_fourth_theta_13 * sin_squared_double_theta_12 + sin_squared_double_theta_13
+    )
+    interference_amplitude_21 = 0.5 * cos_fourth_theta_13 * sin_squared_double_theta_12
+    interference_amplitude_31 = 0.5 * sin_squared_double_theta_13 * cos_squared_theta_12
+    interference_amplitude_32 = 0.5 * sin_squared_double_theta_13 * sin_squared_theta_12
+
+    return (
+        diagonal_probability,
+        interference_amplitude_21,
+        interference_amplitude_31,
+        interference_amplitude_32,
+        sin_fourth_theta_13,
+    )
+
+
+@njit(cache=NUMBA_CACHE_ENABLE)
+def _get_mass_splittings(
+    mass_squared_difference_21,
+    leading_mass_squared_difference_abs,
+    is_dm32_leading,
+    mass_ordering_sign,
+):
+    if is_dm32_leading:
+        mass_squared_difference_32 = mass_ordering_sign * leading_mass_squared_difference_abs
+        mass_squared_difference_31 = mass_squared_difference_32 + mass_squared_difference_21
+    else:
+        mass_squared_difference_31 = mass_ordering_sign * leading_mass_squared_difference_abs
+        mass_squared_difference_32 = mass_squared_difference_31 - mass_squared_difference_21
+
+    return mass_squared_difference_31, mass_squared_difference_32
 
 
 # ---------------------------------------------------------------------------
-# One numba kernel per model — "Medium+".
+# One numba kernel per model.
 # Each kernel only receives the parameters that model uses.
 # ---------------------------------------------------------------------------
 @njit(cache=NUMBA_CACHE_ENABLE)
-def _sur_prob_none(out, E, sinCommonArg, Dm21, Dm31, Dm32,
-                   norm, amp21, amp31, amp32) -> None:
-    for i in range(len(out)):
-        L4E = sinCommonArg / E[i]
-        out[i] = (norm
-                  + amp21 * cos(2.0 * Dm21 * L4E)
-                  + amp31 * cos(2.0 * Dm31 * L4E)
-                  + amp32 * cos(2.0 * Dm32 * L4E))
+def _sur_prob_none(
+    probability: NDArray[double],
+    energy_mev: NDArray[double],
+    baseline: NDArray[double],
+    baseline_scale_to_km: float,
+    sin_squared_double_theta_12: NDArray[double],
+    sin_squared_double_theta_13: NDArray[double],
+    mass_squared_difference_21: NDArray[double],
+    leading_mass_squared_difference_abs: NDArray[double],
+    is_dm32_leading,
+    mass_ordering_sign: NDArray[double],
+    phase_conversion: NDArray[double],
+) -> None:
+    (
+        diagonal_probability,
+        interference_amplitude_21,
+        interference_amplitude_31,
+        interference_amplitude_32,
+        _,
+    ) = _get_common_amplitudes(sin_squared_double_theta_12[0], sin_squared_double_theta_13[0])
+    mass_squared_difference_21_value = mass_squared_difference_21[0]
+    mass_squared_difference_31, mass_squared_difference_32 = _get_mass_splittings(
+        mass_squared_difference_21_value,
+        leading_mass_squared_difference_abs[0],
+        is_dm32_leading,
+        mass_ordering_sign[0],
+    )
+    phase_numerator = phase_conversion[0] * baseline[0] * 0.5 * baseline_scale_to_km
+    for i in range(len(probability)):
+        phase_per_mass_squared_difference = phase_numerator / energy_mev[i]
+        probability[i] = (
+            diagonal_probability
+            + interference_amplitude_21
+            * cos(mass_squared_difference_21_value * phase_per_mass_squared_difference)
+            + interference_amplitude_31
+            * cos(mass_squared_difference_31 * phase_per_mass_squared_difference)
+            + interference_amplitude_32
+            * cos(mass_squared_difference_32 * phase_per_mass_squared_difference)
+        )
 
 
 @njit(cache=NUMBA_CACHE_ENABLE)
-def _sur_prob_decay(out, E, sinCommonArg, Dm21, Dm31, Dm32,
-                    norm, amp21, amp31, amp32, aL_m, sin4t13) -> None:
-    for i in range(len(out)):
-        E_i = E[i]
-        L4E = sinCommonArg / E_i
-        d = exp(-0.5 * aL_m / E_i)
-        correction = sin4t13 * expm1(-aL_m / E_i)
-        out[i] = (norm
-                  + amp21 * cos(2.0 * Dm21 * L4E)
-                  + amp31 * d * cos(2.0 * Dm31 * L4E)
-                  + amp32 * d * cos(2.0 * Dm32 * L4E)
-                  + correction)
+def _sur_prob_decay(
+    probability: NDArray[double],
+    energy_mev: NDArray[double],
+    baseline: NDArray[double],
+    baseline_scale_to_km: float,
+    sin_squared_double_theta_12: NDArray[double],
+    sin_squared_double_theta_13: NDArray[double],
+    mass_squared_difference_21: NDArray[double],
+    leading_mass_squared_difference_abs: NDArray[double],
+    is_dm32_leading,
+    mass_ordering_sign: NDArray[double],
+    phase_conversion: NDArray[double],
+    alpha_decay: NDArray[double],
+) -> None:
+    (
+        diagonal_probability,
+        interference_amplitude_21,
+        interference_amplitude_31,
+        interference_amplitude_32,
+        sin_fourth_theta_13,
+    ) = _get_common_amplitudes(sin_squared_double_theta_12[0], sin_squared_double_theta_13[0])
+    mass_squared_difference_21_value = mass_squared_difference_21[0]
+    mass_squared_difference_31, mass_squared_difference_32 = _get_mass_splittings(
+        mass_squared_difference_21_value,
+        leading_mass_squared_difference_abs[0],
+        is_dm32_leading,
+        mass_ordering_sign[0],
+    )
+    baseline_km = baseline[0] * baseline_scale_to_km
+    phase_numerator = phase_conversion[0] * 0.5 * baseline_km
+    decay_numerator = alpha_decay[0] * baseline_km * 1000.0
+    for i in range(len(probability)):
+        energy_value = energy_mev[i]
+        phase_per_mass_squared_difference = phase_numerator / energy_value
+        decay_exponent = decay_numerator / energy_value
+        interference_damping = exp(-0.5 * decay_exponent)
+        decay_diagonal_correction = sin_fourth_theta_13 * expm1(-decay_exponent)
+        probability[i] = (
+            diagonal_probability
+            + interference_amplitude_21
+            * cos(mass_squared_difference_21_value * phase_per_mass_squared_difference)
+            + interference_amplitude_31
+            * interference_damping
+            * cos(mass_squared_difference_31 * phase_per_mass_squared_difference)
+            + interference_amplitude_32
+            * interference_damping
+            * cos(mass_squared_difference_32 * phase_per_mass_squared_difference)
+            + decay_diagonal_correction
+        )
 
 
 @njit(cache=NUMBA_CACHE_ENABLE)
-def _sur_prob_wpd1(out, E, sinCommonArg, Dm21, Dm31, Dm32,
-                   norm, amp21, amp31, amp32, pre21, pre31, pre32) -> None:
-    for i in range(len(out)):
-        E_i = E[i]
-        E2 = E_i * E_i
-        inv_E4 = 1.0 / (E2 * E2)
-        L4E = sinCommonArg / E_i
-        out[i] = (norm
-                  + amp21 * exp(-pre21 * inv_E4) * cos(2.0 * Dm21 * L4E)
-                  + amp31 * exp(-pre31 * inv_E4) * cos(2.0 * Dm31 * L4E)
-                  + amp32 * exp(-pre32 * inv_E4) * cos(2.0 * Dm32 * L4E))
+def _get_damping_arguments_wpd(
+    alpha_wpd,
+    mass_squared_difference_21,
+    mass_squared_difference_31,
+    mass_squared_difference_32,
+    baseline,
+):
+    baseline_squared = baseline * baseline
+    damping_arg_21 = (
+        alpha_wpd * mass_squared_difference_21 * mass_squared_difference_21 * baseline_squared
+    )
+    damping_arg_31 = (
+        alpha_wpd * mass_squared_difference_31 * mass_squared_difference_31 * baseline_squared
+    )
+    damping_arg_32 = (
+        alpha_wpd * mass_squared_difference_32 * mass_squared_difference_32 * baseline_squared
+    )
+
+    return damping_arg_21, damping_arg_31, damping_arg_32
 
 
 @njit(cache=NUMBA_CACHE_ENABLE)
-def _sur_prob_wpd2(out, E, sinCommonArg, Dm21, Dm31, Dm32,
-                   norm, amp21, amp31, amp32, pre21, pre31, pre32) -> None:
-    for i in range(len(out)):
-        E_i = E[i]
-        inv_E2 = 1.0 / (E_i * E_i)
-        L4E = sinCommonArg / E_i
-        out[i] = (norm
-                  + amp21 * exp(-pre21 * inv_E2) * cos(2.0 * Dm21 * L4E)
-                  + amp31 * exp(-pre31 * inv_E2) * cos(2.0 * Dm31 * L4E)
-                  + amp32 * exp(-pre32 * inv_E2) * cos(2.0 * Dm32 * L4E))
+def _sur_prob_wpd1(
+    probability: NDArray[double],
+    energy_mev: NDArray[double],
+    baseline: NDArray[double],
+    baseline_scale_to_km: float,
+    sin_squared_double_theta_12: NDArray[double],
+    sin_squared_double_theta_13: NDArray[double],
+    mass_squared_difference_21: NDArray[double],
+    leading_mass_squared_difference_abs: NDArray[double],
+    is_dm32_leading,
+    mass_ordering_sign: NDArray[double],
+    phase_conversion: NDArray[double],
+    alpha_wpd1: NDArray[double],
+) -> None:
+    (
+        diagonal_probability,
+        interference_amplitude_21,
+        interference_amplitude_31,
+        interference_amplitude_32,
+        _,
+    ) = _get_common_amplitudes(sin_squared_double_theta_12[0], sin_squared_double_theta_13[0])
+    mass_squared_difference_21_value = mass_squared_difference_21[0]
+    mass_squared_difference_31, mass_squared_difference_32 = _get_mass_splittings(
+        mass_squared_difference_21_value,
+        leading_mass_squared_difference_abs[0],
+        is_dm32_leading,
+        mass_ordering_sign[0],
+    )
+    baseline_km = baseline[0] * baseline_scale_to_km
+    phase_numerator = phase_conversion[0] * baseline_km * 0.5
+    damping_arg_21, damping_arg_31, damping_arg_32 = _get_damping_arguments_wpd(
+        alpha_wpd1[0],
+        mass_squared_difference_21_value,
+        mass_squared_difference_31,
+        mass_squared_difference_32,
+        baseline_km,
+    )
+    for i in range(len(probability)):
+        energy_value = energy_mev[i]
+        energy_squared = energy_value * energy_value
+        inverse_energy_fourth = 1.0 / (energy_squared * energy_squared)
+        phase_per_mass_squared_difference = phase_numerator / energy_value
+        probability[i] = (
+            diagonal_probability
+            + interference_amplitude_21
+            * exp(-damping_arg_21 * inverse_energy_fourth)
+            * cos(mass_squared_difference_21_value * phase_per_mass_squared_difference)
+            + interference_amplitude_31
+            * exp(-damping_arg_31 * inverse_energy_fourth)
+            * cos(mass_squared_difference_31 * phase_per_mass_squared_difference)
+            + interference_amplitude_32
+            * exp(-damping_arg_32 * inverse_energy_fourth)
+            * cos(mass_squared_difference_32 * phase_per_mass_squared_difference)
+        )
+
+
+@njit(cache=NUMBA_CACHE_ENABLE)
+def _sur_prob_wpd2(
+    probability: NDArray[double],
+    energy_mev: NDArray[double],
+    baseline: NDArray[double],
+    baseline_scale_to_km: float,
+    sin_squared_double_theta_12: NDArray[double],
+    sin_squared_double_theta_13: NDArray[double],
+    mass_squared_difference_21: NDArray[double],
+    leading_mass_squared_difference_abs: NDArray[double],
+    is_dm32_leading,
+    mass_ordering_sign: NDArray[double],
+    phase_conversion: NDArray[double],
+    alpha_wpd2: NDArray[double],
+) -> None:
+    (
+        diagonal_probability,
+        interference_amplitude_21,
+        interference_amplitude_31,
+        interference_amplitude_32,
+        _,
+    ) = _get_common_amplitudes(sin_squared_double_theta_12[0], sin_squared_double_theta_13[0])
+    mass_squared_difference_21_value = mass_squared_difference_21[0]
+    mass_squared_difference_31, mass_squared_difference_32 = _get_mass_splittings(
+        mass_squared_difference_21_value,
+        leading_mass_squared_difference_abs[0],
+        is_dm32_leading,
+        mass_ordering_sign[0],
+    )
+    baseline_km = baseline[0] * baseline_scale_to_km
+    phase_numerator = phase_conversion[0] * baseline_km * 0.5
+    damping_arg_21, damping_arg_31, damping_arg_32 = _get_damping_arguments_wpd(
+        alpha_wpd2[0],
+        mass_squared_difference_21_value,
+        mass_squared_difference_31,
+        mass_squared_difference_32,
+        baseline_km,
+    )
+    for i in range(len(probability)):
+        energy_value = energy_mev[i]
+        inverse_energy_squared = 1.0 / (energy_value * energy_value)
+        phase_per_mass_squared_difference = phase_numerator / energy_value
+        probability[i] = (
+            diagonal_probability
+            + interference_amplitude_21
+            * exp(-damping_arg_21 * inverse_energy_squared)
+            * cos(mass_squared_difference_21_value * phase_per_mass_squared_difference)
+            + interference_amplitude_31
+            * exp(-damping_arg_31 * inverse_energy_squared)
+            * cos(mass_squared_difference_31 * phase_per_mass_squared_difference)
+            + interference_amplitude_32
+            * exp(-damping_arg_32 * inverse_energy_squared)
+            * cos(mass_squared_difference_32 * phase_per_mass_squared_difference)
+        )
 
 
 class NueSurvivalProbabilityDamping(Node):
-    """Electron antineutrino survival probability in vacuum with damping.
+    """Three-flavor electron-antineutrino survival probability in vacuum.
 
-    Implements the standard three-flavor P(ν̄ₑ → ν̄ₑ) modulated by one of
-    three damping signatures from the JUNO sensitivity paper
-    (JHEP 06 (2022) 062):
+    Select the model by its constructor string: "none" (standard oscillations
+    without damping), "decay" (invisible nu_3 decay), "wpd1", or "wpd2".
+    Numerical model codes are not supported. Model selection is fixed when the
+    graph closes; alpha is a runtime scalar input, not a model selector.
 
-      * ``"decay"`` : ν₃ invisible decay (rate suppression)
-      * ``"wpd1"``  : Wave Packet Decoherence I (rate preserving)
-      * ``"wpd2"``  : Wave Packet Decoherence II (rate preserving)
+    Public input conventions (unchanged from the senior implementation):
+      E: floating energy array in MeV; result has the same shape and dtype.
+      L: one-element baseline array, in distance_unit (km by default).
+      SinSq2Theta12/13: sin^2(2 theta_12/13), NOT sin^2(theta_12/13).
+        Angles are reconstructed on the lower-octant branch.
+      DeltaMSq21: positive solar mass-squared difference, in eV^2.
+      DeltaMSq31/32: positive magnitude of the selected leading splitting,
+        in eV^2. nmo supplies its sign (+1 normal, -1 inverted).
+      surprobArgConversion: optional phase factor K; default is
+        4 * 1.26693e3 for cosine phase K * DeltaMSq * L_km / (2 * E_MeV).
+      alpha: optional one-element damping coefficient, default zero:
+        decay: d = alpha * L_m / E_MeV; alpha in MeV/m.
+        wpd1: D_ij = exp[-alpha * (DeltaMSq_ij)^2 * L_km^2 / E_MeV^4];
+          alpha in MeV^4 / (eV^4 km^2).
+        wpd2: same expression with E_MeV^2 in the denominator;
+          alpha in MeV^2 / (eV^4 km^2).
+        "none" does not use alpha. These are formula coefficient conventions;
+        converting microscopic model parameters requires a separate mapping.
+
+    WPD damps interference and preserves mass-state populations; it does not
+    preserve the electron-flavor detection rate at each energy. Invisible decay
+    also removes the nu_3 population. All inputs other than E have shape (1,).
+    Construct and connect nodes inside Graph(close_on_exit=True), then read
+    output.data after leaving the context, once buffers have been allocated.
     """
 
     __slots__ = (
-        "_baseline_scale", "_result", "_E", "_L",
-        "_SinSq2Theta12", "_SinSq2Theta13",
-        "_DeltaMSq21", "_DeltaMSq3lAbs",
-        "_is_dm32_leading", "_nmo",
-        "_surprob_arg_conversion_factor",
-        "_alpha_decay", "_alpha_wpd1", "_alpha_wpd2",
+        "_baseline_scale_to_km",
+        "_result",
+        "_energy_mev",
+        "_baseline",
+        "_sin_squared_double_theta_12",
+        "_sin_squared_double_theta_13",
+        "_mass_squared_difference_21",
+        "_leading_mass_squared_difference_abs",
+        "_is_dm32_leading",
+        "_mass_ordering_sign",
+        "_phase_conversion",
+        "_alpha",
         "_model_name",
-        "_sinCommonArg", "_Dm21", "_Dm31", "_Dm32",
-        "_norm", "_amp21", "_amp31", "_amp32",
-        "_L_m", "_L2", "_s4T13",
     )
 
-    _baseline_scale: float
-    _E: NDArray
-    _L: NDArray
-    _nmo: NDArray
-    _DeltaMSq21: NDArray
-    _DeltaMSq3lAbs: NDArray
-    _SinSq2Theta12: NDArray
-    _SinSq2Theta13: NDArray
-    _surprob_arg_conversion_factor: NDArray
-    _alpha_decay: NDArray
-    _alpha_wpd1: NDArray
-    _alpha_wpd2: NDArray
+    _baseline_scale_to_km: float
+    _energy_mev: NDArray
+    _baseline: NDArray
+    _mass_ordering_sign: NDArray
+    _mass_squared_difference_21: NDArray
+    _leading_mass_squared_difference_abs: NDArray
+    _sin_squared_double_theta_12: NDArray
+    _sin_squared_double_theta_13: NDArray
+    _phase_conversion: NDArray
+    _alpha: NDArray | None
     _result: NDArray
     _model_name: str
 
@@ -140,53 +374,49 @@ class NueSurvivalProbabilityDamping(Node):
         *args,
         leading_mass_splitting_3l_name: Literal["DeltaMSq31", "DeltaMSq32"],
         distance_unit: Literal["km", "m"] = "km",
-        damping_model: Literal["none", "decay", "wpd1", "wpd2"] | int = "none",
+        damping_model: Literal["none", "decay", "wpd1", "wpd2"] = "none",
         **kwargs,
     ):
         if leading_mass_splitting_3l_name not in {"DeltaMSq31", "DeltaMSq32"}:
-            raise RuntimeError(
-                f"Do not support switch: {leading_mass_splitting_3l_name=}"
-            )
+            raise RuntimeError(f"Do not support switch: {leading_mass_splitting_3l_name=}")
 
         # Resolve the model at construction (validation only; selection
         # happens in _type_function, matching Chi2's lifecycle).
-        if isinstance(damping_model, int):
-            if damping_model not in _DAMPING_MODEL_MAP.values():
-                raise ValueError(
-                    f"Unknown damping_model code: {damping_model} "
-                    f"(expected one of {sorted(_DAMPING_MODEL_MAP.values())})"
-                )
-            model_name = {v: k for k, v in _DAMPING_MODEL_MAP.items()}[damping_model]
-        else:
-            if damping_model not in _DAMPING_MODEL_MAP:
-                raise ValueError(
-                    f"Unknown damping_model: {damping_model!r} "
-                    f"(expected one of {sorted(_DAMPING_MODEL_MAP)})"
-                )
-            model_name = damping_model
+        if not isinstance(damping_model, str) or damping_model not in _DAMPING_MODELS:
+            raise ValueError(
+                f"Unknown damping_model: {damping_model!r} "
+                f"(expected one of {sorted(_DAMPING_MODELS)})"
+            )
 
         super().__init__(
-            *args, **kwargs,
+            *args,
+            **kwargs,
             allowed_kw_inputs=(
-                "E", "L", "SinSq2Theta13", "SinSq2Theta12",
+                "E",
+                "L",
+                "SinSq2Theta13",
+                "SinSq2Theta12",
                 leading_mass_splitting_3l_name,
-                "DeltaMSq21", "nmo",
+                "DeltaMSq21",
+                "nmo",
                 "surprobArgConversion",
-                "alpha_decay", "alpha_wpd1", "alpha_wpd2",
+                "alpha",
             ),
         )
         self.needs_post_allocate = True
         self._is_dm32_leading = leading_mass_splitting_3l_name == "DeltaMSq32"
         self._labels.setdefault("mark", "P(ee)")
-        self._model_name = model_name
+        self._model_name = damping_model
 
         # ---- Register variants in _evaluator._functions_dict ----
-        self._evaluator._functions_dict.update({
-            "none":  self._function_none,
-            "decay": self._function_decay,
-            "wpd1":  self._function_wpd1,
-            "wpd2":  self._function_wpd2,
-        })
+        self._evaluator._functions_dict.update(
+            {
+                "none": self._function_none,
+                "decay": self._function_decay,
+                "wpd1": self._function_wpd1,
+                "wpd2": self._function_wpd2,
+            }
+        )
 
         self._add_pair("E", "result")
         self._add_input("L", positional=False)
@@ -197,97 +427,82 @@ class NueSurvivalProbabilityDamping(Node):
         self._add_input("nmo", positional=False)
 
         try:
-            self._baseline_scale = {"km": 1, "m": 1.0e-3}[distance_unit]
+            self._baseline_scale_to_km = {"km": 1, "m": 1.0e-3}[distance_unit]
         except KeyError as exc:
             raise RuntimeError(f"Invalid distance unit {distance_unit}") from exc
 
     # ------------------------------------------------------------------
-    # Invariants (shared across variants)
-    # ------------------------------------------------------------------
-    def _compute_invariants(self) -> None:
-        L_km = self._L[0] * self._baseline_scale
-        self._L_m = L_km * 1000.0
-        self._L2 = L_km * L_km
-
-        Dm21 = self._DeltaMSq21[0]
-        if self._is_dm32_leading:
-            Dm32 = self._nmo[0] * self._DeltaMSq3lAbs[0]
-            Dm31 = Dm32 + Dm21
-        else:
-            Dm31 = self._nmo[0] * self._DeltaMSq3lAbs[0]
-            Dm32 = Dm31 - Dm21
-        self._Dm21, self._Dm31, self._Dm32 = Dm21, Dm31, Dm32
-
-        s2t12 = self._SinSq2Theta12[0]
-        s2t13 = self._SinSq2Theta13[0]
-        sT12 = 0.5 * (1.0 - sqrt(1.0 - s2t12))
-        cT12 = 1.0 - sT12
-        sT13 = 0.5 * (1.0 - sqrt(1.0 - s2t13))
-        cT13 = 1.0 - sT13
-        c4T13 = cT13 * cT13
-        self._s4T13 = sT13 * sT13
-
-        self._norm  = 1.0 - 0.5 * (c4T13 * s2t12 + s2t13)
-        self._amp21 = 0.5 * c4T13 * s2t12
-        self._amp31 = 0.5 * s2t13 * cT12
-        self._amp32 = 0.5 * s2t13 * sT12
-
-        self._sinCommonArg = (
-            self._surprob_arg_conversion_factor[0]
-            * self._L[0] * 0.25 * self._baseline_scale
-        )
-
-    # ------------------------------------------------------------------
-    # One function as per model 
+    # Update upstream nodes, then write directly into the allocated output.
     # ------------------------------------------------------------------
     def _function_none(self) -> None:
         for callback in self._evaluator._input_nodes_callbacks:
             callback()
-        self._compute_invariants()
         _sur_prob_none(
-            self._result, self._E, self._sinCommonArg,
-            self._Dm21, self._Dm31, self._Dm32,
-            self._norm, self._amp21, self._amp31, self._amp32,
+            self._result,
+            self._energy_mev,
+            self._baseline,
+            self._baseline_scale_to_km,
+            self._sin_squared_double_theta_12,
+            self._sin_squared_double_theta_13,
+            self._mass_squared_difference_21,
+            self._leading_mass_squared_difference_abs,
+            self._is_dm32_leading,
+            self._mass_ordering_sign,
+            self._phase_conversion,
         )
 
     def _function_decay(self) -> None:
         for callback in self._evaluator._input_nodes_callbacks:
             callback()
-        self._compute_invariants()
-        aL_m = self._alpha_decay[0] * self._L_m
         _sur_prob_decay(
-            self._result, self._E, self._sinCommonArg,
-            self._Dm21, self._Dm31, self._Dm32,
-            self._norm, self._amp21, self._amp31, self._amp32,
-            aL_m, self._s4T13,
+            self._result,
+            self._energy_mev,
+            self._baseline,
+            self._baseline_scale_to_km,
+            self._sin_squared_double_theta_12,
+            self._sin_squared_double_theta_13,
+            self._mass_squared_difference_21,
+            self._leading_mass_squared_difference_abs,
+            self._is_dm32_leading,
+            self._mass_ordering_sign,
+            self._phase_conversion,
+            self._alpha,
         )
 
     def _function_wpd1(self) -> None:
         for callback in self._evaluator._input_nodes_callbacks:
             callback()
-        self._compute_invariants()
-        a = self._alpha_wpd1[0]
         _sur_prob_wpd1(
-            self._result, self._E, self._sinCommonArg,
-            self._Dm21, self._Dm31, self._Dm32,
-            self._norm, self._amp21, self._amp31, self._amp32,
-            a * self._Dm21 * self._Dm21 * self._L2,
-            a * self._Dm31 * self._Dm31 * self._L2,
-            a * self._Dm32 * self._Dm32 * self._L2,
+            self._result,
+            self._energy_mev,
+            self._baseline,
+            self._baseline_scale_to_km,
+            self._sin_squared_double_theta_12,
+            self._sin_squared_double_theta_13,
+            self._mass_squared_difference_21,
+            self._leading_mass_squared_difference_abs,
+            self._is_dm32_leading,
+            self._mass_ordering_sign,
+            self._phase_conversion,
+            self._alpha,
         )
 
     def _function_wpd2(self) -> None:
         for callback in self._evaluator._input_nodes_callbacks:
             callback()
-        self._compute_invariants()
-        a = self._alpha_wpd2[0]
         _sur_prob_wpd2(
-            self._result, self._E, self._sinCommonArg,
-            self._Dm21, self._Dm31, self._Dm32,
-            self._norm, self._amp21, self._amp31, self._amp32,
-            a * self._Dm21 * self._Dm21 * self._L2,
-            a * self._Dm31 * self._Dm31 * self._L2,
-            a * self._Dm32 * self._Dm32 * self._L2,
+            self._result,
+            self._energy_mev,
+            self._baseline,
+            self._baseline_scale_to_km,
+            self._sin_squared_double_theta_12,
+            self._sin_squared_double_theta_13,
+            self._mass_squared_difference_21,
+            self._leading_mass_squared_difference_abs,
+            self._is_dm32_leading,
+            self._mass_ordering_sign,
+            self._phase_conversion,
+            self._alpha,
         )
 
     # ----------------------------------------
@@ -297,19 +512,24 @@ class NueSurvivalProbabilityDamping(Node):
     def _type_function(self) -> None:
         check_shape_of_inputs(
             self,
-            ("L", "SinSq2Theta12", "SinSq2Theta13",
-             "DeltaMSq21",
-             "DeltaMSq32" if self._is_dm32_leading else "DeltaMSq31",
-             "nmo"),
+            (
+                "L",
+                "SinSq2Theta12",
+                "SinSq2Theta13",
+                "DeltaMSq21",
+                "DeltaMSq32" if self._is_dm32_leading else "DeltaMSq31",
+                "nmo",
+            ),
             (1,),
         )
-        for opt_name in ("surprobArgConversion",
-                         "alpha_decay", "alpha_wpd1", "alpha_wpd2"):
+        for opt_name in ("surprobArgConversion", "alpha"):
             if self.inputs.get(opt_name) is not None:
                 check_shape_of_inputs(self, (opt_name,), (1,))
+        # The output inherits E's dtype: reject integers to prevent truncation.
+        check_subtype_of_inputs(self, "E", dtype=floating)
         copy_from_inputs_to_outputs(self, "E", "result")
         assign_axes_from_inputs_to_outputs(
-            self, "E", "result", assign_meshes=True, overwrite_assigned=True
+            self, "E", "result", assign_meshes=True, ignore_Nd=True, overwrite_assigned=True
         )
 
         # ---- Select the variant here ----
@@ -319,57 +539,70 @@ class NueSurvivalProbabilityDamping(Node):
     def _post_allocate(self) -> None:
         super()._post_allocate()
         self._result = self.outputs["result"]._data.ravel()
-        self._E = self.inputs["E"]._data.ravel()
-        self._L = self.inputs["L"]._data
-        self._SinSq2Theta12 = self.inputs["SinSq2Theta12"]._data
-        self._SinSq2Theta13 = self.inputs["SinSq2Theta13"]._data
-        self._DeltaMSq21 = self.inputs["DeltaMSq21"]._data
-        self._DeltaMSq3lAbs = self.inputs[
+        self._energy_mev = self.inputs["E"]._data.ravel()
+        self._baseline = self.inputs["L"]._data
+        self._sin_squared_double_theta_12 = self.inputs["SinSq2Theta12"]._data
+        self._sin_squared_double_theta_13 = self.inputs["SinSq2Theta13"]._data
+        self._mass_squared_difference_21 = self.inputs["DeltaMSq21"]._data
+        self._leading_mass_squared_difference_abs = self.inputs[
             "DeltaMSq32" if self._is_dm32_leading else "DeltaMSq31"
         ]._data
-        self._nmo = self.inputs["nmo"]._data
+        self._mass_ordering_sign = self.inputs["nmo"]._data
 
-        self._surprob_arg_conversion_factor = (
-            cin._data if (cin := self.inputs.get("surprobArgConversion"))
+        self._phase_conversion = (
+            conversion_input._data
+            if (conversion_input := self.inputs.get("surprobArgConversion"))
             else array([_surprobArgConversion])
         )
-        self._alpha_decay = (
-            cin._data if (cin := self.inputs.get("alpha_decay")) else array([0.0])
-        )
-        self._alpha_wpd1 = (
-            cin._data if (cin := self.inputs.get("alpha_wpd1")) else array([0.0])
-        )
-        self._alpha_wpd2 = (
-            cin._data if (cin := self.inputs.get("alpha_wpd2")) else array([0.0])
-        )
+        # No damping parameter or fallback array is needed for the standard model.
+        self._alpha = None
+        if self._model_name != "none":
+            alpha_input = self.inputs.get("alpha")
+            self._alpha = alpha_input._data if alpha_input is not None else array([0.0])
 
     @classmethod
-    def replicate(cls, *args, name: str,
-                  replicate_outputs: tuple[KeyLike, ...] = ((),),
-                  surprobArgConversion: Output | Literal[True] | None = None,
-                  verbose: bool = False, **kwargs):
+    def replicate(
+        cls,
+        *args,
+        name: str,
+        replicate_outputs: tuple[KeyLike, ...] = ((),),
+        surprobArgConversion: Output | Literal[True] | None = None,
+        verbose: bool = False,
+        **kwargs,
+    ):
+        """Register replicas and their E/L ports in NodeStorage.
+
+        Damped replicas expose an alpha port that the caller must connect;
+        "none" replicas expose no unused alpha port. With direct construction,
+        an omitted alpha input instead defaults to zero. Optional shared phase
+        conversion follows the existing Output / True / None convention.
+        """
         storage = NodeStorage()
         nodes = storage.create_child("nodes")
         inputs = storage.create_child("inputs")
         outputs = storage.create_child("outputs")
 
-        nametuple = tuple(name.split("."))
+        name_parts = tuple(name.split("."))
         for key in replicate_outputs:
-            ckey = nametuple + (key,) if isinstance(key, str) else nametuple + key
-            cname = ".".join(ckey)
-            surprob = cls(cname, *args, **kwargs)
-            nodes[ckey] = surprob
-            inputs[nametuple + ("enu",) + key] = surprob.inputs[0]
-            inputs[nametuple + ("L",) + key] = surprob.inputs["L"]
-            outputs[ckey] = surprob.outputs[0]
+            key_parts = (key,) if isinstance(key, str) else tuple(key)
+            node_key = name_parts + key_parts
+            node_name = ".".join(node_key)
+            survival_probability = cls(node_name, *args, **kwargs)
+            nodes[node_key] = survival_probability
+            inputs[name_parts + ("enu",) + key_parts] = survival_probability.inputs[0]
+            inputs[name_parts + ("L",) + key_parts] = survival_probability.inputs["L"]
+            outputs[node_key] = survival_probability.outputs[0]
 
             if surprobArgConversion:
                 if surprobArgConversion is True:
-                    inputs[nametuple + ("surprobArgConversion",) + key] = surprob(
-                        "surprobArgConversion"
+                    inputs[name_parts + ("surprobArgConversion",) + key_parts] = (
+                        survival_probability("surprobArgConversion")
                     )
                 else:
-                    surprobArgConversion >> surprob("surprobArgConversion")
+                    surprobArgConversion >> survival_probability("surprobArgConversion")
+
+            if survival_probability._model_name != "none":
+                inputs[name_parts + ("alpha",) + key_parts] = survival_probability("alpha")
 
         NodeStorage.update_current(storage, strict=True, verbose=verbose)
         return None, storage
