@@ -31,7 +31,7 @@ _constant_hbar_c_eV_cm = (_constant_hbar * _constant_c / _constant_e) * 100
 _constant_SqGeV_to_SqMeV = 1e-18
 _constant_GF_CONVERSION = _constant_SqGeV_to_SqMeV * (_constant_hbar_c_eV_cm**3)
 _constant_MeV_to_eV = 1e-6
-_density_conversion = (
+_matter_density_conversion = (
     (-2.0)
     / _constant_aem_g
     * sqrt(2.0)
@@ -65,7 +65,7 @@ def _sur_prob_expansion(
     is_dm32_leading: float,
     nmo: NDArray[double],
     ElectronToNucleonFraction: NDArray[double],
-    density: NDArray[double],
+    matter_density: NDArray[double],
     surprobArgConversion: NDArray[double],
 ) -> None:
     _DeltaMSq21 = DeltaMSq21[0]
@@ -90,8 +90,8 @@ def _sur_prob_expansion(
         DeltaMSq32 = DeltaMSq31 - _DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
         DeltaMSqee = DeltaMSq31 - SinSqTheta12 * _DeltaMSq21  # Δm²(ee)= Δm²₃₁ - sin²(θ₁₂) · Δm²₂₁
 
-    _density_const = ElectronToNucleonFraction[0] * _density_conversion
-    msw_factor = _density_const * density[0]
+    _density_const = ElectronToNucleonFraction[0] * _matter_density_conversion
+    msw_factor = _density_const * matter_density[0]
 
     Lcq = surprobArgConversion[0] * 0.25 * L[0] * L_scale
 
@@ -196,7 +196,7 @@ def _sur_prob_main(
         DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₁ = α·|Δm²₃ₗ|
         DeltaMSqee = DeltaMSq31 - SinSqTheta12 * _DeltaMSq21  # Δm²(ee)= Δm²₃₁ - sin²(θ₁₂) · Δm²₂₁
 
-    _density_const = ElectronToNucleonFraction[0] * _density_conversion
+    _density_const = ElectronToNucleonFraction[0] * _matter_density_conversion
     msw_factor = _density_const * density[0]
 
     Lcq = surprobArgConversion[0] * 0.25 * L[0] * L_scale
@@ -318,7 +318,7 @@ class NueSurvivalProbabilityKhan(Node):
         "_is_dm32_leading",
         "_nmo",
         "_ElectronToNucleonFraction",
-        "_density",
+        "_matter_density",
         "_surprob_arg_conversion_factor",
     )
 
@@ -331,7 +331,7 @@ class NueSurvivalProbabilityKhan(Node):
     _SinSq2Theta12: NDArray
     _SinSq2Theta13: NDArray
     _ElectronToNucleonFraction: NDArray
-    _density: NDArray
+    _matter_density: NDArray
     _surprob_arg_conversion_factor: NDArray
     _result: NDArray
 
@@ -372,7 +372,7 @@ class NueSurvivalProbabilityKhan(Node):
         self._add_input(leading_mass_splitting_3l_name, positional=False)
         self._add_input("nmo", positional=False)
         self._add_input("ElectronToNucleonFraction", positional=False)
-        self._add_input("density", positional=False)
+        self._add_input("matter_density", positional=False)
         try:
             self._baseline_scale = {"km": 1, "m": 1.0e-3}[distance_unit]
         except KeyError as e:
@@ -403,7 +403,7 @@ class NueSurvivalProbabilityKhan(Node):
                 "DeltaMSq32" if self._is_dm32_leading else "DeltaMSq31",
                 "nmo",
                 "ElectronToNucleonFraction",
-                "density",
+                "matter_density",
             ),
             (1,),
         )
@@ -428,7 +428,7 @@ class NueSurvivalProbabilityKhan(Node):
             self._is_dm32_leading,
             self._nmo,
             self._ElectronToNucleonFraction,
-            self._density,
+            self._matter_density,
             self._surprob_arg_conversion_factor,
         )
 
@@ -448,7 +448,7 @@ class NueSurvivalProbabilityKhan(Node):
             self._is_dm32_leading,
             self._nmo,
             self._ElectronToNucleonFraction,
-            self._density,
+            self._matter_density,
             self._surprob_arg_conversion_factor,
         )
 
@@ -467,7 +467,7 @@ class NueSurvivalProbabilityKhan(Node):
         ]._data
         self._nmo = self.inputs["nmo"]._data
         self._ElectronToNucleonFraction = self.inputs["ElectronToNucleonFraction"]._data
-        self._density = self.inputs["density"]._data
+        self._matter_density = self.inputs["matter_density"]._data
 
         if conversion_input := self.inputs.get("surprobArgConversion"):
             self._surprob_arg_conversion_factor = conversion_input._data
