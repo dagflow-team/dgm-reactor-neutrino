@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from dag_modelling.core.global_parameters import NUMBA_CACHE_ENABLE
 from dag_modelling.core.node import Node
 from dag_modelling.core.storage import NodeStorage
 from dag_modelling.core.type_functions import (
@@ -31,7 +32,7 @@ _constant_hbar_c_eV_cm = (_constant_hbar * _constant_c / _constant_e) * 100
 _constant_SqGeV_to_SqMeV = 1e-18
 _constant_GF_CONVERSION = _constant_SqGeV_to_SqMeV * (_constant_hbar_c_eV_cm**3)
 _constant_MeV_to_eV = 1e-6
-_matter_density_conversion = (
+_electron_density_to_matter_potential = (
     (-2.0)
     / _constant_aem_g
     * sqrt(2.0)
@@ -52,7 +53,7 @@ del (
 )
 
 
-@njit(cache=True)
+@njit(cache=NUMBA_CACHE_ENABLE)
 def _sur_prob_expansion(
     out: NDArray[double],
     E: NDArray[double],
@@ -90,7 +91,7 @@ def _sur_prob_expansion(
         DeltaMSq32 = DeltaMSq31 - _DeltaMSq21  # Δm²₃₂ = Δm²₃₁ - Δm²₂₁
         DeltaMSqee = DeltaMSq31 - SinSqTheta12 * _DeltaMSq21  # Δm²(ee)= Δm²₃₁ - sin²(θ₁₂) · Δm²₂₁
 
-    _density_const = ElectronToNucleonFraction[0] * _matter_density_conversion
+    _density_const = ElectronToNucleonFraction[0] * _electron_density_to_matter_potential
     msw_factor = _density_const * matter_density[0]
 
     Lcq = surprobArgConversion[0] * 0.25 * L[0] * L_scale
@@ -164,7 +165,7 @@ def _sur_prob_expansion(
         )  # eq. (4)
 
 
-@njit(cache=True)
+@njit(cache=NUMBA_CACHE_ENABLE)
 def _sur_prob_main(
     out: NDArray[double],
     E: NDArray[double],
@@ -196,7 +197,7 @@ def _sur_prob_main(
         DeltaMSq31 = nmo[0] * DeltaMSq3lAbs[0]  # Δm²₃₁ = α·|Δm²₃ₗ|
         DeltaMSqee = DeltaMSq31 - SinSqTheta12 * _DeltaMSq21  # Δm²(ee)= Δm²₃₁ - sin²(θ₁₂) · Δm²₂₁
 
-    _density_const = ElectronToNucleonFraction[0] * _matter_density_conversion
+    _density_const = ElectronToNucleonFraction[0] * _electron_density_to_matter_potential
     msw_factor = _density_const * density[0]
 
     Lcq = surprobArgConversion[0] * 0.25 * L[0] * L_scale
