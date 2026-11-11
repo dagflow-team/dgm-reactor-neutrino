@@ -61,7 +61,7 @@ def test_NueSurvivalProbabilityKhan(
         Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill") >> surprob(
             "ElectronToNucleonFraction"
         )
-        Array("density", [density], mode="fill") >> surprob("density")
+        Array("matter_density", [density], mode="fill") >> surprob("matter_density")
         if conversionFactor is not None:
             (
                 in_conversion := Array("surprobArgConversion", [conversionFactor], mode="fill")
@@ -324,7 +324,7 @@ def test_crosscheck_NueSurvivalProbability_NueSurvivalProbabilityKhan(
         Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill") >> surprobKhan(
             "ElectronToNucleonFraction"
         )
-        Array("density", [density], mode="fill") >> surprobKhan("density")
+        Array("matter_density", [density], mode="fill") >> surprobKhan("matter_density")
         if conversionFactor is not None:
             (Array("surprobArgConversion", [conversionFactor], mode="fill")) >> surprobKhan(
                 "surprobArgConversion"
@@ -415,7 +415,7 @@ def test_crosscheck_NueSurvivalProbabilityKhan(
         Array("ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill") >> surprobMain(
             "ElectronToNucleonFraction"
         )
-        Array("density", [density], mode="fill") >> surprobMain("density")
+        Array("matter_density", [density], mode="fill") >> surprobMain("matter_density")
         if conversionFactor is not None:
             (Array("surprobArgConversion", [conversionFactor], mode="fill")) >> surprobMain(
                 "surprobArgConversion"
@@ -439,7 +439,7 @@ def test_crosscheck_NueSurvivalProbabilityKhan(
         Array(
             "ElectronToNucleonFraction", [ElectronToNucleonFraction], mode="fill"
         ) >> surprobExpansion("ElectronToNucleonFraction")
-        Array("density", [density], mode="fill") >> surprobExpansion("density")
+        Array("matter_density", [density], mode="fill") >> surprobExpansion("matter_density")
         if conversionFactor is not None:
             (Array("surprobArgConversion", [conversionFactor], mode="fill")) >> surprobExpansion(
                 "surprobArgConversion"
