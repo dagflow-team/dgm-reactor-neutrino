@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.4.2] - 2026-11-17
+
+- feature: add transformation for damping oscillation.
+
 ## [0.4.1] - 2026-11-11
 
 - lint: rename parameter `density` to `matter_density` of neutrino oscillations in the matter.
