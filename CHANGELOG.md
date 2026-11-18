@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.4.3] - 2026-11-18
 
-- feature: rename parameter of damping: `alpha` -> `alpha_damping`.
+- chore: rename parameter of damping: `alpha` -> `alpha_damping`.
 
 ## [0.4.2] - 2026-11-17
 
