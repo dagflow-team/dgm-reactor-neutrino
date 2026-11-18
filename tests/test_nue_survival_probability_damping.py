@@ -81,7 +81,7 @@ def _reference_probability(model, input_values, leading_splitting="DeltaMSq32", 
     # An arbitrary common mass-squared offset cancels from all interference terms.
     mass_squared_values = (0.0, solar_splitting, splitting_31)
     conversion = input_values.get("surprobArgConversion", [_surprobArgConversion])[0]
-    alpha = input_values.get("alpha", [0.0])[0]
+    alpha_damping = input_values.get("alpha_damping", [0.0])[0]
     if model in ("none", "decay"):
         amplitude = np.zeros_like(energy_mev, dtype=complex)
         for mass_index, (weight, mass_squared) in enumerate(
@@ -89,7 +89,7 @@ def _reference_probability(model, input_values, leading_splitting="DeltaMSq32", 
         ):
             survival_amplitude = 1.0
             if model == "decay" and mass_index == 2:
-                survival_amplitude = np.exp(-alpha * baseline_km * 1000.0 / (2.0 * energy_mev))
+                survival_amplitude = np.exp(-alpha_damping * baseline_km * 1000.0 / (2.0 * energy_mev))
             phase = conversion * mass_squared * baseline_km / (2.0 * energy_mev)
             amplitude += weight * survival_amplitude * np.exp(-1j * phase)
         return np.abs(amplitude) ** 2
@@ -98,7 +98,7 @@ def _reference_probability(model, input_values, leading_splitting="DeltaMSq32", 
     energy_power = {"wpd1": 4, "wpd2": 2}[model]
     for lower_index, upper_index in ((0, 1), (0, 2), (1, 2)):
         splitting = mass_squared_values[upper_index] - mass_squared_values[lower_index]
-        damping = np.exp(-alpha * splitting**2 * baseline_km**2 / energy_mev**energy_power)
+        damping = np.exp(-alpha_damping * splitting**2 * baseline_km**2 / energy_mev**energy_power)
         phase = conversion * splitting * baseline_km / (2.0 * energy_mev)
         probability += (
             2.0
@@ -126,7 +126,7 @@ def _assert_probability_and_cache_state(node, expected_probability):
 def test_probability_matches_independent_reference(model, leading_splitting, mass_ordering_sign):
     input_values = _default_inputs(leading_splitting, mass_ordering_sign)
     if model != "none":
-        input_values["alpha"] = np.array([ALPHA_BY_MODEL[model]])
+        input_values["alpha_damping"] = np.array([ALPHA_BY_MODEL[model]])
     node, _ = _build_node(model, input_values, leading_splitting=leading_splitting)
     # Closing selects the function; reading .data below triggers numerical evaluation.
     assert node._evaluator.function.__name__ == f"_function_{model}"
@@ -140,7 +140,7 @@ def test_changed_inputs_invalidate_cached_result(model):
     input_values = _default_inputs()
     input_values["surprobArgConversion"] = np.array([_surprobArgConversion])
     if model != "none":
-        input_values["alpha"] = np.array([ALPHA_BY_MODEL[model]])
+        input_values["alpha_damping"] = np.array([ALPHA_BY_MODEL[model]])
     node, sources = _build_node(model, input_values)
     _assert_probability_and_cache_state(node, _reference_probability(model, input_values))
     # One graph per model; mutate each dependency instead of rebuilding graphs.
@@ -155,7 +155,7 @@ def test_changed_inputs_invalidate_cached_result(model):
         "surprobArgConversion": np.array([_surprobArgConversion * 1.01]),
     }
     if model != "none":
-        updates["alpha"] = np.array([ALPHA_BY_MODEL[model] * 2.0])
+        updates["alpha_damping"] = np.array([ALPHA_BY_MODEL[model] * 2.0])
     for port_name, values in updates.items():
         input_values[port_name] = values
         sources[port_name].outputs[0].set(values)
@@ -174,7 +174,7 @@ def standard_probability():
 def test_zero_damping_matches_standard_oscillations(model, explicit_zero, standard_probability):
     input_values = _default_inputs()
     if explicit_zero:
-        input_values["alpha"] = np.array([0.0])
+        input_values["alpha_damping"] = np.array([0.0])
     node, _ = _build_node(model, input_values)
     _assert_probability_and_cache_state(node, standard_probability)
 
@@ -183,7 +183,7 @@ def test_zero_damping_matches_standard_oscillations(model, explicit_zero, standa
 def test_metre_and_kilometre_baselines_are_equivalent(model):
     input_values = _default_inputs()
     if model != "none":
-        input_values["alpha"] = np.array([ALPHA_BY_MODEL[model]])
+        input_values["alpha_damping"] = np.array([ALPHA_BY_MODEL[model]])
     expected = _reference_probability(model, input_values)
     input_values["L"] = np.array([52500.0])
     node, _ = _build_node(model, input_values, distance_unit="m")
@@ -212,7 +212,7 @@ def test_multidimensional_energy_preserves_shape(model):
     input_values = _default_inputs()
     input_values["E"] = ENERGY_MEV.reshape(8, 12)
     if model != "none":
-        input_values["alpha"] = np.array([ALPHA_BY_MODEL[model]])
+        input_values["alpha_damping"] = np.array([ALPHA_BY_MODEL[model]])
     node, _ = _build_node(model, input_values)
     _assert_probability_and_cache_state(node, _reference_probability(model, input_values))
     assert node.outputs["result"].data.shape == (8, 12)
@@ -224,7 +224,7 @@ def test_replication_keys_and_model_specific_alpha_port(replica_key, model):
     key_parts = (replica_key,) if isinstance(replica_key, str) else replica_key
     input_values = _default_inputs()
     if model != "none":
-        input_values["alpha"] = np.array([ALPHA_BY_MODEL[model]])
+        input_values["alpha_damping"] = np.array([ALPHA_BY_MODEL[model]])
     with Graph(close_on_exit=True):
         _, storage = NueSurvivalProbabilityDamping.replicate(
             name="survival",
@@ -234,7 +234,7 @@ def test_replication_keys_and_model_specific_alpha_port(replica_key, model):
         )
         node = storage["nodes"][("survival",) + key_parts]
         assert storage["inputs"][("survival", "enu") + key_parts] is node.inputs["E"]
-        alpha_key = ("survival", "alpha") + key_parts
-        assert (alpha_key in storage["inputs"]) == (model != "none")
+        alpha_damping_key = ("survival", "alpha_damping") + key_parts
+        assert (alpha_damping_key in storage["inputs"]) == (model != "none")
         _connect_inputs(node, input_values)
     _assert_probability_and_cache_state(node, _reference_probability(model, input_values))

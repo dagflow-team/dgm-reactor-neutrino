@@ -312,7 +312,7 @@ class NueSurvivalProbabilityDamping(Node):
     Select the model by its constructor string: "none" (standard oscillations
     without damping), "decay" (invisible nu_3 decay), "wpd1", or "wpd2".
     Numerical model codes are not supported. Model selection is fixed when the
-    graph closes; alpha is a runtime scalar input, not a model selector.
+    graph closes; alpha_damping is a runtime scalar input, not a model selector.
 
     Public input conventions (unchanged from the senior implementation):
       E: floating energy array in MeV; result has the same shape and dtype.
@@ -324,13 +324,13 @@ class NueSurvivalProbabilityDamping(Node):
         in eV^2. nmo supplies its sign (+1 normal, -1 inverted).
       surprobArgConversion: optional phase factor K; default is
         4 * 1.26693e3 for cosine phase K * DeltaMSq * L_km / (2 * E_MeV).
-      alpha: optional one-element damping coefficient, default zero:
-        decay: d = alpha * L_m / E_MeV; alpha in MeV/m.
-        wpd1: D_ij = exp[-alpha * (DeltaMSq_ij)^2 * L_km^2 / E_MeV^4];
-          alpha in MeV^4 / (eV^4 km^2).
+      alpha_damping: optional one-element damping coefficient, default zero:
+        decay: d = alpha_damping * L_m / E_MeV; alpha_damping in MeV/m.
+        wpd1: D_ij = exp[-alpha_damping * (DeltaMSq_ij)^2 * L_km^2 / E_MeV^4];
+          alpha_damping in MeV^4 / (eV^4 km^2).
         wpd2: same expression with E_MeV^2 in the denominator;
-          alpha in MeV^2 / (eV^4 km^2).
-        "none" does not use alpha. These are formula coefficient conventions;
+          alpha_damping in MeV^2 / (eV^4 km^2).
+        "none" does not use alpha_damping. These are formula coefficient conventions;
         converting microscopic model parameters requires a separate mapping.
 
     WPD damps interference and preserves mass-state populations; it does not
@@ -352,7 +352,7 @@ class NueSurvivalProbabilityDamping(Node):
         "_is_dm32_leading",
         "_mass_ordering_sign",
         "_phase_conversion",
-        "_alpha",
+        "_alpha_damping",
         "_model_name",
     )
 
@@ -365,7 +365,7 @@ class NueSurvivalProbabilityDamping(Node):
     _sin_squared_double_theta_12: NDArray
     _sin_squared_double_theta_13: NDArray
     _phase_conversion: NDArray
-    _alpha: NDArray | None
+    _alpha_damping: NDArray | None
     _result: NDArray
     _model_name: str
 
@@ -400,7 +400,7 @@ class NueSurvivalProbabilityDamping(Node):
                 "DeltaMSq21",
                 "nmo",
                 "surprobArgConversion",
-                "alpha",
+                "alpha_damping",
             ),
         )
         self.needs_post_allocate = True
@@ -466,7 +466,7 @@ class NueSurvivalProbabilityDamping(Node):
             self._is_dm32_leading,
             self._mass_ordering_sign,
             self._phase_conversion,
-            self._alpha,
+            self._alpha_damping,
         )
 
     def _function_wpd1(self) -> None:
@@ -484,7 +484,7 @@ class NueSurvivalProbabilityDamping(Node):
             self._is_dm32_leading,
             self._mass_ordering_sign,
             self._phase_conversion,
-            self._alpha,
+            self._alpha_damping,
         )
 
     def _function_wpd2(self) -> None:
@@ -502,7 +502,7 @@ class NueSurvivalProbabilityDamping(Node):
             self._is_dm32_leading,
             self._mass_ordering_sign,
             self._phase_conversion,
-            self._alpha,
+            self._alpha_damping,
         )
 
     # ----------------------------------------
@@ -522,7 +522,7 @@ class NueSurvivalProbabilityDamping(Node):
             ),
             (1,),
         )
-        for opt_name in ("surprobArgConversion", "alpha"):
+        for opt_name in ("surprobArgConversion", "alpha_damping"):
             if self.inputs.get(opt_name) is not None:
                 check_shape_of_inputs(self, (opt_name,), (1,))
         # The output inherits E's dtype: reject integers to prevent truncation.
@@ -555,10 +555,10 @@ class NueSurvivalProbabilityDamping(Node):
             else array([_surprobArgConversion])
         )
         # No damping parameter or fallback array is needed for the standard model.
-        self._alpha = None
+        self._alpha_damping = None
         if self._model_name != "none":
-            alpha_input = self.inputs.get("alpha")
-            self._alpha = alpha_input._data if alpha_input is not None else array([0.0])
+            alpha_input = self.inputs.get("alpha_damping")
+            self._alpha_damping = alpha_input._data if alpha_input is not None else array([0.0])
 
     @classmethod
     def replicate(
@@ -602,7 +602,7 @@ class NueSurvivalProbabilityDamping(Node):
                     surprobArgConversion >> survival_probability("surprobArgConversion")
 
             if survival_probability._model_name != "none":
-                inputs[name_parts + ("alpha",) + key_parts] = survival_probability("alpha")
+                inputs[name_parts + ("alpha_damping",) + key_parts] = survival_probability("alpha_damping")
 
         NodeStorage.update_current(storage, strict=True, verbose=verbose)
         return None, storage
